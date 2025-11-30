@@ -34,7 +34,7 @@ frontend/build/
 blockchain/node_modules/
 blockchain/build/   
 blockchain/.env
-
+.claude/
 # IDE
 .vscode/
 .idea/
