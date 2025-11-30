@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment variables
+.env
+backend/.env
+frontend/.env
+
+# Build directories
+build/
+dist/
+*/build/
+*/dist/
+
+# Blockchain
+blockchain/build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+
+# Production
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/node_modules
+frontend/node_modules
+frontend/build/
+blockchain/node_modules/
+blockchain/build/   
+blockchain/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.pem
+*.key

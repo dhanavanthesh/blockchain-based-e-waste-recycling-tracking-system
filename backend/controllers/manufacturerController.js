@@ -1,0 +1,146 @@
+const Device = require('../models/Device');
+const { registerDeviceOnChain, getDeviceFromChain } = require('../services/web3Service');
+const { generateDeviceQR } = require('../services/qrService');
+
+// @desc    Register a new device
+// @route   POST /api/manufacturer/device
+// @access  Private (Manufacturer only)
+exports.registerDevice = async (req, res) => {
+  try {
+    const { name, manufacturer, category, model, serialNumber, weight, materials, walletAddress } = req.body;
+
+    // Validate required fields
+    if (!name || !manufacturer || !category || !model || !serialNumber || !walletAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide all required fields'
+      });
+    }
+
+    // Register device on blockchain
+    const blockchainResult = await registerDeviceOnChain(name, manufacturer, walletAddress);
+
+    // Create device in MongoDB
+    const device = await Device.create({
+      blockchainId: blockchainResult.deviceId,
+      specifications: {
+        category,
+        model,
+        serialNumber,
+        weight: weight || 0,
+        materials: materials || []
+      },
+      manufacturerId: req.user._id,
+      currentOwnerId: req.user._id,
+      transactionHashes: [blockchainResult.transactionHash]
+    });
+
+    // Generate QR code
+    const qrCode = await generateDeviceQR({
+      blockchainId: blockchainResult.deviceId,
+      manufacturerId: req.user._id,
+      specifications: { serialNumber }
+    });
+
+    device.qrCode = qrCode;
+    await device.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Device registered successfully',
+      device: {
+        id: device._id,
+        blockchainId: device.blockchainId,
+        qrCode: device.qrCode,
+        specifications: device.specifications,
+        transactionHash: blockchainResult.transactionHash
+      }
+    });
+  } catch (error) {
+    console.error('Error registering device:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get all devices for manufacturer
+// @route   GET /api/manufacturer/devices
+// @access  Private (Manufacturer only)
+exports.getManufacturerDevices = async (req, res) => {
+  try {
+    const devices = await Device.find({ manufacturerId: req.user._id })
+      .populate('currentOwnerId', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: devices.length,
+      devices
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get device details
+// @route   GET /api/manufacturer/device/:id
+// @access  Private
+exports.getDeviceDetails = async (req, res) => {
+  try {
+    const device = await Device.findById(req.params.id)
+      .populate('manufacturerId', 'name email')
+      .populate('currentOwnerId', 'name email');
+
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        message: 'Device not found'
+      });
+    }
+
+    // Get blockchain data
+    const blockchainData = await getDeviceFromChain(device.blockchainId);
+
+    res.status(200).json({
+      success: true,
+      device: {
+        ...device.toObject(),
+        blockchainData
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get dashboard statistics
+// @route   GET /api/manufacturer/statistics
+// @access  Private (Manufacturer only)
+exports.getStatistics = async (req, res) => {
+  try {
+    const totalDevices = await Device.countDocuments({ manufacturerId: req.user._id });
+
+    // Additional statistics can be added here
+
+    res.status(200).json({
+      success: true,
+      statistics: {
+        totalDevices,
+        // Add more stats as needed
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
