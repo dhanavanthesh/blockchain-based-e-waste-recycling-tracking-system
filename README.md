@@ -355,13 +355,3 @@ For issues and questions:
 3. Check browser console for errors
 4. Verify all environment variables are set
 
-## Development Team
-
-Built with Claude Code - AI-powered development assistant
-
-## Acknowledgments
-
-- Truffle Suite for blockchain development tools
-- Material-UI for React components
-- ethers.js for Ethereum interactions
-- Socket.io for real-time communication
