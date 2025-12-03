@@ -15,6 +15,9 @@ import Examples from './pages/Examples';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ManufacturerDashboard from './pages/manufacturer/Dashboard';
+import AddDevice from './pages/manufacturer/AddDevice';
+import DeviceList from './pages/manufacturer/DeviceList';
+import RegisterWallet from './pages/manufacturer/RegisterWallet';
 import ConsumerDashboard from './pages/consumer/Dashboard';
 import RecyclerDashboard from './pages/recycler/Dashboard';
 import RegulatorDashboard from './pages/regulator/Dashboard';
@@ -53,6 +56,30 @@ function App() {
                       element={
                         <PrivateRoute role="manufacturer">
                           <ManufacturerDashboard />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route
+                      path="/manufacturer/register-wallet"
+                      element={
+                        <PrivateRoute role="manufacturer">
+                          <RegisterWallet />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route
+                      path="/manufacturer/add-device"
+                      element={
+                        <PrivateRoute role="manufacturer">
+                          <AddDevice />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route
+                      path="/manufacturer/devices"
+                      element={
+                        <PrivateRoute role="manufacturer">
+                          <DeviceList />
                         </PrivateRoute>
                       }
                     />

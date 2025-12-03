@@ -120,6 +120,34 @@ export const Web3Provider = ({ children }) => {
     setChainId(null);
   };
 
+  const switchAccount = async () => {
+    if (!window.ethereum) {
+      alert('MetaMask is not installed.');
+      return { success: false, message: 'MetaMask not installed' };
+    }
+
+    try {
+      // Request account switch - this will open MetaMask to select account
+      await window.ethereum.request({
+        method: 'wallet_requestPermissions',
+        params: [{
+          eth_accounts: {}
+        }]
+      });
+
+      // After user selects account, reconnect
+      await connectMetaMask();
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error switching account:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to switch account'
+      };
+    }
+  };
+
   const handleAccountsChanged = (accounts) => {
     if (accounts.length === 0) {
       disconnect();
@@ -140,7 +168,8 @@ export const Web3Provider = ({ children }) => {
     isConnected,
     chainId,
     connectMetaMask,
-    disconnect
+    disconnect,
+    switchAccount
   };
 
   return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;

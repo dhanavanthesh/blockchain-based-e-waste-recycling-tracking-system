@@ -2,7 +2,7 @@ const Device = require('../models/Device');
 const { registerDeviceOnChain, getDeviceFromChain } = require('../services/web3Service');
 const { generateDeviceQR } = require('../services/qrService');
 
-// @desc    Register a new device
+// @desc    Register a new device (OLD - with blockchain transaction)
 // @route   POST /api/manufacturer/device
 // @access  Private (Manufacturer only)
 exports.registerDevice = async (req, res) => {
@@ -58,6 +58,75 @@ exports.registerDevice = async (req, res) => {
     });
   } catch (error) {
     console.error('Error registering device:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Save device metadata (after blockchain transaction from frontend)
+// @route   POST /api/manufacturer/device/metadata
+// @access  Private (Manufacturer only)
+exports.saveDeviceMetadata = async (req, res) => {
+  try {
+    const { blockchainId, category, model, serialNumber, weight, materials, transactionHash, walletAddress } = req.body;
+
+    // Validate required fields
+    if (!blockchainId || !category || !model || !serialNumber || !transactionHash) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide all required fields'
+      });
+    }
+
+    // Check if device already exists
+    const existingDevice = await Device.findOne({ blockchainId });
+    if (existingDevice) {
+      return res.status(400).json({
+        success: false,
+        message: 'Device with this blockchain ID already exists'
+      });
+    }
+
+    // Create device in MongoDB
+    const device = await Device.create({
+      blockchainId,
+      specifications: {
+        category,
+        model,
+        serialNumber,
+        weight: weight || 0,
+        materials: materials || []
+      },
+      manufacturerId: req.user._id,
+      currentOwnerId: req.user._id,
+      transactionHashes: [transactionHash]
+    });
+
+    // Generate QR code
+    const qrCode = await generateDeviceQR({
+      blockchainId: blockchainId,
+      manufacturerId: req.user._id,
+      specifications: { serialNumber }
+    });
+
+    device.qrCode = qrCode;
+    await device.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Device metadata saved successfully',
+      device: {
+        id: device._id,
+        blockchainId: device.blockchainId,
+        qrCode: device.qrCode,
+        specifications: device.specifications,
+        transactionHash: transactionHash
+      }
+    });
+  } catch (error) {
+    console.error('Error saving device metadata:', error);
     res.status(500).json({
       success: false,
       message: error.message

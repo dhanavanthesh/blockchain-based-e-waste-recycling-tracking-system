@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   registerDevice,
+  saveDeviceMetadata,
   getManufacturerDevices,
   getDeviceDetails,
   getStatistics
@@ -15,6 +16,7 @@ router.use(protect);
 router.use(authorize('manufacturer'));
 
 router.post('/device', registerDevice);
+router.post('/device/metadata', saveDeviceMetadata);
 router.get('/devices', getManufacturerDevices);
 router.get('/device/:id', getDeviceDetails);
 router.get('/statistics', getStatistics);

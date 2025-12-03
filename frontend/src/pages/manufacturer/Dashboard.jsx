@@ -29,14 +29,22 @@ import api from '../../services/api';
 const ManufacturerDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { account, isConnected, connectMetaMask } = useWeb3();
+  const { account, isConnected, connectMetaMask, contract } = useWeb3();
   const [statistics, setStatistics] = useState({
     totalDevices: 0
   });
+  const [isRegisteredOnChain, setIsRegisteredOnChain] = useState(false);
+  const [checkingRegistration, setCheckingRegistration] = useState(false);
 
   useEffect(() => {
     fetchStatistics();
   }, []);
+
+  useEffect(() => {
+    if (isConnected && account && contract) {
+      checkBlockchainRegistration();
+    }
+  }, [isConnected, account, contract]);
 
   const fetchStatistics = async () => {
     try {
@@ -44,6 +52,22 @@ const ManufacturerDashboard = () => {
       setStatistics(response.data.statistics);
     } catch (error) {
       console.error('Error fetching statistics:', error);
+    }
+  };
+
+  const checkBlockchainRegistration = async () => {
+    if (!contract || !account) return;
+
+    setCheckingRegistration(true);
+    try {
+      const registered = await contract.isUserRegistered(account);
+      setIsRegisteredOnChain(registered);
+      console.log('Blockchain registration status:', registered);
+    } catch (error) {
+      console.error('Error checking blockchain registration:', error);
+      setIsRegisteredOnChain(false);
+    } finally {
+      setCheckingRegistration(false);
     }
   };
 
@@ -84,6 +108,29 @@ const ManufacturerDashboard = () => {
               Connect your wallet to register devices on the blockchain
             </Typography>
           </Alert>
+        ) : !isRegisteredOnChain ? (
+          <Alert
+            severity="warning"
+            icon={<WarningIcon />}
+            sx={{ mb: 3 }}
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => navigate('/manufacturer/register-wallet')}
+                variant="outlined"
+              >
+                Register Now
+              </Button>
+            }
+          >
+            <Typography variant="body1" fontWeight="medium">
+              Wallet Not Registered on Blockchain
+            </Typography>
+            <Typography variant="body2">
+              Register your wallet ({account?.substring(0, 6)}...{account?.substring(38)}) on the blockchain to start creating devices
+            </Typography>
+          </Alert>
         ) : (
           <Alert
             severity="success"
@@ -91,7 +138,7 @@ const ManufacturerDashboard = () => {
             sx={{ mb: 3 }}
           >
             <Typography variant="body2" fontWeight="medium">
-              Wallet Connected: {account?.substring(0, 6)}...{account?.substring(38)}
+              Wallet Connected & Registered: {account?.substring(0, 6)}...{account?.substring(38)}
             </Typography>
           </Alert>
         )}
@@ -184,10 +231,10 @@ const ManufacturerDashboard = () => {
                 size="large"
                 startIcon={<AddIcon />}
                 onClick={() => navigate('/manufacturer/add-device')}
-                disabled={!isConnected}
+                disabled={!isConnected || !isRegisteredOnChain}
                 sx={{
                   py: 2,
-                  background: isConnected
+                  background: (isConnected && isRegisteredOnChain)
                     ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
                     : undefined
                 }}

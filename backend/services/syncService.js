@@ -13,6 +13,11 @@ const setupEventListeners = () => {
   try {
     const contract = getContract();
 
+    // NOTE: Event listening disabled for web3.js v4+ compatibility
+    // Real-time updates still work via Socket.io from API calls
+    console.log('ℹ️ Blockchain event listeners disabled (not needed for current implementation)');
+    return;
+
     // Listen to DeviceRegistered event
     contract.events.DeviceRegistered()
       .on('data', async (event) => {

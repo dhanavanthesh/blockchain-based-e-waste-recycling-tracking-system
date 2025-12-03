@@ -26,7 +26,9 @@ import {
   Home as HomeIcon,
   Menu as MenuIcon,
   Recycling as RecyclingIcon,
-  AccountBalanceWallet as WalletIcon
+  AccountBalanceWallet as WalletIcon,
+  LinkOff as LinkOffIcon,
+  SwapHoriz as SwapHorizIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -36,7 +38,7 @@ const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAuthenticated } = useAuth();
-  const { account, isConnected } = useWeb3();
+  const { account, isConnected, disconnect, connectMetaMask, switchAccount } = useWeb3();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -53,8 +55,24 @@ const Navigation = () => {
 
   const handleLogout = () => {
     logout();
+    disconnect(); // Also disconnect wallet
     handleMenuClose();
     navigate('/');
+  };
+
+  const handleDisconnectWallet = () => {
+    disconnect();
+    handleMenuClose();
+  };
+
+  const handleConnectWallet = async () => {
+    await connectMetaMask();
+    handleMenuClose();
+  };
+
+  const handleSwitchAccount = async () => {
+    await switchAccount();
+    handleMenuClose();
   };
 
   const handleDashboard = () => {
@@ -255,6 +273,23 @@ const Navigation = () => {
                       <DashboardIcon sx={{ mr: 1 }} fontSize="small" />
                       Dashboard
                     </MenuItem>
+                    {isConnected ? (
+                      <>
+                        <MenuItem onClick={handleSwitchAccount}>
+                          <SwapHorizIcon sx={{ mr: 1 }} fontSize="small" />
+                          Switch Account
+                        </MenuItem>
+                        <MenuItem onClick={handleDisconnectWallet}>
+                          <LinkOffIcon sx={{ mr: 1 }} fontSize="small" />
+                          Disconnect Wallet
+                        </MenuItem>
+                      </>
+                    ) : (
+                      <MenuItem onClick={handleConnectWallet}>
+                        <WalletIcon sx={{ mr: 1 }} fontSize="small" />
+                        Connect Wallet
+                      </MenuItem>
+                    )}
                     <MenuItem onClick={handleLogout}>
                       <LogoutIcon sx={{ mr: 1 }} fontSize="small" />
                       Logout

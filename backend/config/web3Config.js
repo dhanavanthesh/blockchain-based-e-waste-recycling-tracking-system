@@ -1,5 +1,5 @@
 // Auto-generated file - Do not edit manually
-// Generated on: 2025-11-29T19:19:55.799Z
+// Generated on: 2025-12-03T11:37:56.621Z
 
 const contractABI = [
   {
@@ -672,7 +672,7 @@ const contractABI = [
   }
 ];
 
-const contractAddress = "0x4BBcA09FB8ed178E6D2a02211Fc480BC2c334591";
+const contractAddress = "0x51E0CE3A12CE6460E8135992c587C2936e862737";
 
 module.exports = {
   contractABI,
