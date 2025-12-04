@@ -11,7 +11,12 @@ import {
   Alert,
   Chip,
   Divider,
-  Stack
+  Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress
 } from '@mui/material';
 import {
   Devices as DevicesIcon,
@@ -22,16 +27,109 @@ import {
   Warning as WarningIcon,
   History as HistoryIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWeb3 } from '../../contexts/Web3Context';
+import QRScanner from '../../components/qr/QRScanner';
+import DeviceTimeline from '../../components/device/DeviceTimeline';
+import api from '../../services/api';
 
 const ConsumerDashboard = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { account, isConnected, connectMetaMask } = useWeb3();
+  const { account, contract, isConnected, connectMetaMask } = useWeb3();
   const [statistics, setStatistics] = useState({
     ownedDevices: 0,
     recycledDevices: 0
   });
+
+  // Scanner state
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannedDevice, setScannedDevice] = useState(null);
+  const [deviceDialog, setDeviceDialog] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [error, setError] = useState('');
+  const [isRegisteredOnChain, setIsRegisteredOnChain] = useState(false);
+
+  useEffect(() => {
+    fetchStatistics();
+  }, []);
+
+  useEffect(() => {
+    if (contract && account) {
+      checkBlockchainRegistration();
+    }
+  }, [contract, account]);
+
+  const checkBlockchainRegistration = async () => {
+    if (!contract || !account) return;
+
+    try {
+      const registered = await contract.isUserRegistered(account);
+      setIsRegisteredOnChain(registered);
+      console.log('Blockchain registration status:', registered);
+    } catch (error) {
+      console.error('Error checking blockchain registration:', error);
+    }
+  };
+
+  const fetchStatistics = async () => {
+    try {
+      const response = await api.get('/consumer/statistics');
+      setStatistics(response.data.statistics);
+    } catch (err) {
+      console.error('Error fetching statistics:', err);
+    }
+  };
+
+  const handleScan = async (blockchainId) => {
+    try {
+      setError('');
+      const response = await api.get(`/consumer/scan/${blockchainId}`);
+      setScannedDevice(response.data.device);
+      setScannerOpen(false);
+      setDeviceDialog(true);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to scan device');
+      setScannerOpen(false);
+    }
+  };
+
+  const handleClaimDevice = async () => {
+    if (!isConnected || !contract || !scannedDevice) {
+      setError('Please connect your MetaMask wallet');
+      return;
+    }
+
+    try {
+      setClaiming(true);
+      setError('');
+
+      // Claim device on blockchain (ethers.js v6 syntax)
+      const tx = await contract.claimDevice(scannedDevice.blockchainId);
+
+      console.log('Transaction sent, waiting for confirmation...');
+      const receipt = await tx.wait();
+      console.log('Transaction confirmed:', receipt);
+
+      // Update in backend
+      await api.post('/consumer/claim-device', {
+        blockchainId: scannedDevice.blockchainId,
+        walletAddress: account,
+        transactionHash: receipt.hash
+      });
+
+      setDeviceDialog(false);
+      setScannedDevice(null);
+      fetchStatistics();
+      alert('Device claimed successfully!');
+    } catch (err) {
+      console.error('Claim error:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to claim device');
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   return (
     <Box sx={{ bgcolor: '#f5f5f5', minHeight: '100vh', py: 4 }}>
@@ -70,6 +168,29 @@ const ConsumerDashboard = () => {
               Connect your wallet to manage your devices
             </Typography>
           </Alert>
+        ) : !isRegisteredOnChain ? (
+          <Alert
+            severity="warning"
+            icon={<WarningIcon />}
+            sx={{ mb: 3 }}
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => navigate('/consumer/register-wallet')}
+                variant="outlined"
+              >
+                Register Now
+              </Button>
+            }
+          >
+            <Typography variant="body1" fontWeight="medium">
+              Wallet Not Registered on Blockchain
+            </Typography>
+            <Typography variant="body2">
+              Register your wallet ({account?.substring(0, 6)}...{account?.substring(38)}) on the blockchain to claim devices
+            </Typography>
+          </Alert>
         ) : (
           <Alert
             severity="success"
@@ -77,7 +198,7 @@ const ConsumerDashboard = () => {
             sx={{ mb: 3 }}
           >
             <Typography variant="body2" fontWeight="medium">
-              Wallet Connected: {account?.substring(0, 6)}...{account?.substring(38)}
+              Wallet Connected & Registered: {account?.substring(0, 6)}...{account?.substring(38)}
             </Typography>
           </Alert>
         )}
@@ -165,6 +286,12 @@ const ConsumerDashboard = () => {
           </Grid>
         </Grid>
 
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
+
         {/* Quick Actions */}
         <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
@@ -179,10 +306,11 @@ const ConsumerDashboard = () => {
                 variant="contained"
                 size="large"
                 startIcon={<QrCodeIcon />}
-                disabled={!isConnected}
+                disabled={!isConnected || !isRegisteredOnChain}
+                onClick={() => setScannerOpen(true)}
                 sx={{
                   py: 2,
-                  background: isConnected
+                  background: (isConnected && isRegisteredOnChain)
                     ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
                     : undefined
                 }}
@@ -196,6 +324,7 @@ const ConsumerDashboard = () => {
                 variant="outlined"
                 size="large"
                 startIcon={<DevicesIcon />}
+                onClick={() => navigate('/consumer/devices')}
                 sx={{ py: 2 }}
               >
                 My Devices
@@ -207,6 +336,7 @@ const ConsumerDashboard = () => {
                 variant="outlined"
                 size="large"
                 startIcon={<RecyclingIcon />}
+                onClick={() => navigate('/consumer/devices')}
                 sx={{ py: 2 }}
               >
                 Recycle Device
@@ -218,6 +348,7 @@ const ConsumerDashboard = () => {
                 variant="outlined"
                 size="large"
                 startIcon={<HistoryIcon />}
+                onClick={() => navigate('/consumer/devices')}
                 sx={{ py: 2 }}
               >
                 History
@@ -348,6 +479,83 @@ const ConsumerDashboard = () => {
           </Grid>
         </Paper>
       </Container>
+
+      {/* QR Scanner Dialog */}
+      <QRScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleScan}
+      />
+
+      {/* Scanned Device Dialog */}
+      <Dialog open={deviceDialog} onClose={() => !claiming && setDeviceDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Device Scanned Successfully</DialogTitle>
+        <DialogContent>
+          {scannedDevice && (
+            <Box>
+              <Alert severity="success" sx={{ mb: 3 }}>
+                This device is authentic and registered on the blockchain!
+              </Alert>
+
+              <Typography variant="h6" gutterBottom>
+                {scannedDevice.specifications?.model}
+              </Typography>
+
+              <Grid container spacing={2} mb={3}>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Serial Number:</strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    {scannedDevice.specifications?.serialNumber}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Blockchain ID:</strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    #{scannedDevice.blockchainId}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Manufacturer:</strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    {scannedDevice.manufacturerId?.name || 'N/A'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Current Owner:</strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    {scannedDevice.currentOwnerId?.name || 'N/A'}
+                  </Typography>
+                </Grid>
+              </Grid>
+
+              <Typography variant="h6" gutterBottom>
+                Device History
+              </Typography>
+              <DeviceTimeline device={scannedDevice} />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeviceDialog(false)} disabled={claiming}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleClaimDevice}
+            variant="contained"
+            disabled={claiming || !isConnected}
+          >
+            {claiming ? <CircularProgress size={24} /> : 'Claim Ownership'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

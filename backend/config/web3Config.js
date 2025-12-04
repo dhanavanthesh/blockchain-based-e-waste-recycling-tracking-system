@@ -1,6 +1,21 @@
 // Auto-generated file - Do not edit manually
 // Generated on: 2025-12-03T11:37:56.621Z
 
+const path = require('path');
+const fs = require('fs');
+
+// Read contract address from frontend .env
+const frontendEnvPath = path.join(__dirname, '../../frontend/.env');
+let contractAddressFromEnv = null;
+
+if (fs.existsSync(frontendEnvPath)) {
+  const envContent = fs.readFileSync(frontendEnvPath, 'utf8');
+  const match = envContent.match(/REACT_APP_CONTRACT_ADDRESS=(.+)/);
+  if (match) {
+    contractAddressFromEnv = match[1].trim();
+  }
+}
+
 const contractABI = [
   {
     "anonymous": false,
@@ -672,7 +687,7 @@ const contractABI = [
   }
 ];
 
-const contractAddress = "0x51E0CE3A12CE6460E8135992c587C2936e862737";
+const contractAddress = contractAddressFromEnv || process.env.CONTRACT_ADDRESS || "0xCe907818Fa2467BC90d0c740F2980341dc5365A9";
 
 module.exports = {
   contractABI,

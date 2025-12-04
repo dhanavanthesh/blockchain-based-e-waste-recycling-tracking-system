@@ -17,7 +17,6 @@ import {
   Timeline as TimelineIcon,
   Assessment as AssessmentIcon,
   VerifiedUser as VerifiedUserIcon,
-  AccountBalanceWallet as WalletIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
   PieChart as PieChartIcon,

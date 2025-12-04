@@ -17,10 +17,18 @@ import Register from './pages/auth/Register';
 import ManufacturerDashboard from './pages/manufacturer/Dashboard';
 import AddDevice from './pages/manufacturer/AddDevice';
 import DeviceList from './pages/manufacturer/DeviceList';
-import RegisterWallet from './pages/manufacturer/RegisterWallet';
+import ManufacturerRegisterWallet from './pages/manufacturer/RegisterWallet';
 import ConsumerDashboard from './pages/consumer/Dashboard';
+import ConsumerDevicesList from './pages/consumer/DevicesList';
+import ConsumerRegisterWallet from './pages/consumer/RegisterWallet';
 import RecyclerDashboard from './pages/recycler/Dashboard';
+import RecyclerDevicesList from './pages/recycler/DevicesList';
+import RecyclerSubmitReport from './pages/recycler/SubmitReport';
+import RecyclerRegisterWallet from './pages/recycler/RegisterWallet';
 import RegulatorDashboard from './pages/regulator/Dashboard';
+import RegulatorAllDevices from './pages/regulator/AllDevices';
+import RegulatorReportsList from './pages/regulator/ReportsList';
+import RegulatorRegisterWallet from './pages/regulator/RegisterWallet';
 
 const theme = createTheme({
   palette: {
@@ -63,7 +71,7 @@ function App() {
                       path="/manufacturer/register-wallet"
                       element={
                         <PrivateRoute role="manufacturer">
-                          <RegisterWallet />
+                          <ManufacturerRegisterWallet />
                         </PrivateRoute>
                       }
                     />
@@ -93,6 +101,22 @@ function App() {
                         </PrivateRoute>
                       }
                     />
+                    <Route
+                      path="/consumer/devices"
+                      element={
+                        <PrivateRoute role="consumer">
+                          <ConsumerDevicesList />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route
+                      path="/consumer/register-wallet"
+                      element={
+                        <PrivateRoute role="consumer">
+                          <ConsumerRegisterWallet />
+                        </PrivateRoute>
+                      }
+                    />
 
                     {/* Recycler Routes */}
                     <Route
@@ -103,6 +127,30 @@ function App() {
                         </PrivateRoute>
                       }
                     />
+                    <Route
+                      path="/recycler/devices"
+                      element={
+                        <PrivateRoute role="recycler">
+                          <RecyclerDevicesList />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route
+                      path="/recycler/submit-report"
+                      element={
+                        <PrivateRoute role="recycler">
+                          <RecyclerSubmitReport />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route
+                      path="/recycler/register-wallet"
+                      element={
+                        <PrivateRoute role="recycler">
+                          <RecyclerRegisterWallet />
+                        </PrivateRoute>
+                      }
+                    />
 
                     {/* Regulator Routes */}
                     <Route
@@ -110,6 +158,30 @@ function App() {
                       element={
                         <PrivateRoute role="regulator">
                           <RegulatorDashboard />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route
+                      path="/regulator/devices"
+                      element={
+                        <PrivateRoute role="regulator">
+                          <RegulatorAllDevices />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route
+                      path="/regulator/reports"
+                      element={
+                        <PrivateRoute role="regulator">
+                          <RegulatorReportsList />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route
+                      path="/regulator/register-wallet"
+                      element={
+                        <PrivateRoute role="regulator">
+                          <RegulatorRegisterWallet />
                         </PrivateRoute>
                       }
                     />

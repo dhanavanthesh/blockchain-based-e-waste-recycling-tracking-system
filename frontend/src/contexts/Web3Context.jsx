@@ -66,7 +66,8 @@ export const Web3Provider = ({ children }) => {
 
   const loadContract = async (signerInstance) => {
     try {
-      const contractABI = require('../config/contractABI.json');
+      const contractJSON = require('../config/contractABI.json');
+      const contractABI = contractJSON.abi; // Extract just the ABI array
       const contractInstance = new ethers.Contract(
         CONTRACT_ADDRESS,
         contractABI,

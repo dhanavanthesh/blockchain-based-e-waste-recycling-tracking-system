@@ -149,6 +149,27 @@ contract EWasteTracking {
         emit OwnershipTransferred(_deviceId, previousOwner, _newOwner);
     }
 
+    // Function for consumers to claim newly manufactured devices
+    function claimDevice(uint256 _deviceId)
+        external
+        deviceExists(_deviceId)
+    {
+        require(users[msg.sender].isRegistered, "User not registered");
+        require(users[msg.sender].role == Role.Consumer, "Only consumers can claim devices");
+        require(devices[_deviceId].status == DeviceStatus.Manufactured, "Device already claimed");
+        require(devices[_deviceId].currentOwner != msg.sender, "Already owner");
+
+        address previousOwner = devices[_deviceId].currentOwner;
+        devices[_deviceId].currentOwner = msg.sender;
+        devices[_deviceId].status = DeviceStatus.InUse;
+        devices[_deviceId].lastUpdated = block.timestamp;
+
+        deviceOwnerHistory[_deviceId].push(msg.sender);
+        ownerDevices[msg.sender].push(_deviceId);
+
+        emit OwnershipTransferred(_deviceId, previousOwner, msg.sender);
+    }
+
     function updateDeviceStatus(uint256 _deviceId, DeviceStatus _status)
         external
         onlyRole(Role.Recycler)

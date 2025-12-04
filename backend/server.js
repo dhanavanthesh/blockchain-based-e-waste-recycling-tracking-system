@@ -11,7 +11,9 @@ const { initSocket, setupEventListeners } = require('./services/syncService');
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const manufacturerRoutes = require('./routes/manufacturerRoutes');
-// Additional route imports will go here
+const consumerRoutes = require('./routes/consumerRoutes');
+const recyclerRoutes = require('./routes/recyclerRoutes');
+const regulatorRoutes = require('./routes/regulatorRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -67,7 +69,9 @@ try {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/manufacturer', manufacturerRoutes);
-// Additional routes will be mounted here
+app.use('/api/consumer', consumerRoutes);
+app.use('/api/recycler', recyclerRoutes);
+app.use('/api/regulator', regulatorRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
