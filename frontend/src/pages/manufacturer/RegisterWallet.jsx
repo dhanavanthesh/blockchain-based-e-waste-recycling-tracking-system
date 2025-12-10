@@ -45,12 +45,13 @@ const ManufacturerRegisterWallet = () => {
     if (!contract || !account) return;
 
     try {
-      const registered = await contract.isUserRegistered(account);
-      setIsRegistered(registered);
+      // Check if wallet has Manufacturer role specifically (Role.Manufacturer = 1)
+      const hasManufacturerRole = await contract.hasRole(account, 1);
+      setIsRegistered(hasManufacturerRole);
 
-      if (registered) {
+      if (hasManufacturerRole) {
         setActiveStep(3);
-        setSuccess('Your wallet is already registered on the blockchain!');
+        setSuccess('Your wallet is already registered as Manufacturer on the blockchain!');
       }
     } catch (error) {
       console.error('Error checking registration:', error);
@@ -78,16 +79,28 @@ const ManufacturerRegisterWallet = () => {
     setError('');
 
     try {
-      const alreadyRegistered = await contract.isUserRegistered(account);
-      if (alreadyRegistered) {
+      // Check if wallet already has the Manufacturer role specifically (Role.Manufacturer = 1)
+      const hasManufacturerRole = await contract.hasRole(account, 1);
+
+      if (hasManufacturerRole) {
+        console.log('Wallet already has Manufacturer role, skipping blockchain registration...');
         setIsRegistered(true);
         setActiveStep(2);
-        setSuccess('Wallet already registered on blockchain! Linking to account...');
+        setSuccess('Wallet already registered as Manufacturer! Linking to account...');
         await handleLinkWallet();
         return;
       }
 
-      console.log('Registering on blockchain as Manufacturer...');
+      // Check if wallet is registered with any role
+      const isRegistered = await contract.isUserRegistered(account);
+
+      if (isRegistered) {
+        console.log('Wallet registered with another role. Adding Manufacturer role...');
+        setSuccess('Adding Manufacturer role to your wallet...');
+      } else {
+        console.log('Registering wallet for the first time as Manufacturer...');
+      }
+
       const tx = await contract.registerUser(1); // 1 = Manufacturer
 
       console.log('Transaction sent, waiting for confirmation...');
@@ -96,7 +109,7 @@ const ManufacturerRegisterWallet = () => {
 
       setIsRegistered(true);
       setActiveStep(2);
-      setSuccess('Successfully registered on blockchain! Now linking wallet to your account...');
+      setSuccess('Successfully registered as Manufacturer! Now linking wallet to your account...');
 
       await handleLinkWallet();
 
@@ -105,10 +118,6 @@ const ManufacturerRegisterWallet = () => {
 
       if (err.code === 'ACTION_REJECTED') {
         setError('Transaction rejected by user');
-      } else if (err.message && err.message.includes('User already registered')) {
-        setIsRegistered(true);
-        setActiveStep(2);
-        await handleLinkWallet();
       } else {
         setError(err.message || 'Failed to register on blockchain. Please try again.');
       }

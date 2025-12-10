@@ -48,6 +48,21 @@ const deviceSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  ownershipHistory: [{
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    transferDate: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  status: {
+    type: String,
+    enum: ['manufactured', 'in_use', 'in_recycling', 'recycled'],
+    default: 'manufactured'
+  },
   transactionHashes: [{
     type: String
   }],

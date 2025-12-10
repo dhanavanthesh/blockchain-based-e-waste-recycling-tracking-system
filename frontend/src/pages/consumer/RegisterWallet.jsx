@@ -45,13 +45,13 @@ const ConsumerRegisterWallet = () => {
     if (!contract || !account) return;
 
     try {
-      // Use .staticCall() for explicit read-only call in ethers v6
-      const registered = await contract.isUserRegistered.staticCall(account);
-      setIsRegistered(registered);
+      // Check if wallet has Consumer role specifically (Role.Consumer = 2)
+      const hasConsumerRole = await contract.hasRole(account, 2);
+      setIsRegistered(hasConsumerRole);
 
-      if (registered) {
+      if (hasConsumerRole) {
         setActiveStep(3);
-        setSuccess('Your wallet is already registered on the blockchain!');
+        setSuccess('Your wallet is already registered as Consumer on the blockchain!');
       }
     } catch (error) {
       console.error('Error checking registration:', error);
@@ -79,17 +79,28 @@ const ConsumerRegisterWallet = () => {
     setError('');
 
     try {
-      // Use .staticCall() for explicit read-only call in ethers v6
-      const alreadyRegistered = await contract.isUserRegistered.staticCall(account);
-      if (alreadyRegistered) {
+      // Check if wallet already has the Consumer role specifically (Role.Consumer = 2)
+      const hasConsumerRole = await contract.hasRole(account, 2);
+
+      if (hasConsumerRole) {
+        console.log('Wallet already has Consumer role, skipping blockchain registration...');
         setIsRegistered(true);
         setActiveStep(2);
-        setSuccess('Wallet already registered on blockchain! Linking to account...');
+        setSuccess('Wallet already registered as Consumer! Linking to account...');
         await handleLinkWallet();
         return;
       }
 
-      console.log('Registering on blockchain as Consumer...');
+      // Check if wallet is registered with any role
+      const isRegistered = await contract.isUserRegistered(account);
+
+      if (isRegistered) {
+        console.log('Wallet registered with another role. Adding Consumer role...');
+        setSuccess('Adding Consumer role to your wallet...');
+      } else {
+        console.log('Registering wallet for the first time as Consumer...');
+      }
+
       const tx = await contract.registerUser(2); // 2 = Consumer
 
       console.log('Transaction sent, waiting for confirmation...');
@@ -98,7 +109,7 @@ const ConsumerRegisterWallet = () => {
 
       setIsRegistered(true);
       setActiveStep(2);
-      setSuccess('Successfully registered on blockchain! Now linking wallet to your account...');
+      setSuccess('Successfully registered as Consumer! Now linking wallet to your account...');
 
       await handleLinkWallet();
 
@@ -107,10 +118,6 @@ const ConsumerRegisterWallet = () => {
 
       if (err.code === 'ACTION_REJECTED') {
         setError('Transaction rejected by user');
-      } else if (err.message && err.message.includes('User already registered')) {
-        setIsRegistered(true);
-        setActiveStep(2);
-        await handleLinkWallet();
       } else {
         setError(err.message || 'Failed to register on blockchain. Please try again.');
       }

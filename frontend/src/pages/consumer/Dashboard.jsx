@@ -51,6 +51,7 @@ const ConsumerDashboard = () => {
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState('');
   const [isRegisteredOnChain, setIsRegisteredOnChain] = useState(false);
+  const [hasConsumerRole, setHasConsumerRole] = useState(false);
 
   useEffect(() => {
     fetchStatistics();
@@ -69,6 +70,11 @@ const ConsumerDashboard = () => {
       const registered = await contract.isUserRegistered(account);
       setIsRegisteredOnChain(registered);
       console.log('Blockchain registration status:', registered);
+
+      // Check if wallet has Consumer role specifically (Role.Consumer = 2)
+      const consumerRole = await contract.hasRole(account, 2);
+      setHasConsumerRole(consumerRole);
+      console.log('Has Consumer role:', consumerRole);
     } catch (error) {
       console.error('Error checking blockchain registration:', error);
     }
@@ -180,7 +186,7 @@ const ConsumerDashboard = () => {
               Connect your wallet to manage your devices
             </Typography>
           </Alert>
-        ) : !isRegisteredOnChain ? (
+        ) : !hasConsumerRole ? (
           <Alert
             severity="warning"
             icon={<WarningIcon />}
@@ -192,15 +198,18 @@ const ConsumerDashboard = () => {
                 onClick={() => navigate('/consumer/register-wallet')}
                 variant="outlined"
               >
-                Register Now
+                {isRegisteredOnChain ? 'Add Consumer Role' : 'Register Now'}
               </Button>
             }
           >
             <Typography variant="body1" fontWeight="medium">
-              Wallet Not Registered on Blockchain
+              {isRegisteredOnChain ? 'Consumer Role Not Added' : 'Wallet Not Registered on Blockchain'}
             </Typography>
             <Typography variant="body2">
-              Register your wallet ({account?.substring(0, 6)}...{account?.substring(38)}) on the blockchain to claim devices
+              {isRegisteredOnChain
+                ? `Your wallet is registered but missing the Consumer role. Click "Add Consumer Role" to add it.`
+                : `Register your wallet (${account?.substring(0, 6)}...${account?.substring(38)}) on the blockchain to claim devices`
+              }
             </Typography>
           </Alert>
         ) : (
@@ -210,7 +219,7 @@ const ConsumerDashboard = () => {
             sx={{ mb: 3 }}
           >
             <Typography variant="body2" fontWeight="medium">
-              Wallet Connected & Registered: {account?.substring(0, 6)}...{account?.substring(38)}
+              Wallet Connected & Registered as Consumer: {account?.substring(0, 6)}...{account?.substring(38)}
             </Typography>
           </Alert>
         )}
@@ -318,11 +327,11 @@ const ConsumerDashboard = () => {
                 variant="contained"
                 size="large"
                 startIcon={<QrCodeIcon />}
-                disabled={!isConnected || !isRegisteredOnChain}
+                disabled={!isConnected || !hasConsumerRole}
                 onClick={() => setScannerOpen(true)}
                 sx={{
                   py: 2,
-                  background: (isConnected && isRegisteredOnChain)
+                  background: (isConnected && hasConsumerRole)
                     ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
                     : undefined
                 }}
