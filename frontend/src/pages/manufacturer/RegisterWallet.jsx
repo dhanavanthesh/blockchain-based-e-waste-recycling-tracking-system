@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { useWeb3 } from '../../contexts/Web3Context';
 import api from '../../services/api';
 
-const RegisterWallet = () => {
+const ManufacturerRegisterWallet = () => {
   const navigate = useNavigate();
   const { account, isConnected, contract, connectMetaMask } = useWeb3();
   const [loading, setLoading] = useState(false);
@@ -78,10 +78,8 @@ const RegisterWallet = () => {
     setError('');
 
     try {
-      // Check if already registered first
       const alreadyRegistered = await contract.isUserRegistered(account);
       if (alreadyRegistered) {
-        console.log('Wallet already registered on blockchain');
         setIsRegistered(true);
         setActiveStep(2);
         setSuccess('Wallet already registered on blockchain! Linking to account...');
@@ -89,7 +87,6 @@ const RegisterWallet = () => {
         return;
       }
 
-      // Register user with role = 1 (Manufacturer)
       console.log('Registering on blockchain as Manufacturer...');
       const tx = await contract.registerUser(1); // 1 = Manufacturer
 
@@ -101,7 +98,6 @@ const RegisterWallet = () => {
       setActiveStep(2);
       setSuccess('Successfully registered on blockchain! Now linking wallet to your account...');
 
-      // Automatically link wallet
       await handleLinkWallet();
 
     } catch (err) {
@@ -110,7 +106,6 @@ const RegisterWallet = () => {
       if (err.code === 'ACTION_REJECTED') {
         setError('Transaction rejected by user');
       } else if (err.message && err.message.includes('User already registered')) {
-        setError('This wallet is already registered. Proceeding to link...');
         setIsRegistered(true);
         setActiveStep(2);
         await handleLinkWallet();
@@ -126,7 +121,6 @@ const RegisterWallet = () => {
     setLoading(true);
 
     try {
-      console.log('Linking wallet to account...');
       const response = await api.post('/auth/link-wallet', {
         walletAddress: account
       });
@@ -135,7 +129,6 @@ const RegisterWallet = () => {
         setActiveStep(3);
         setSuccess('Wallet successfully linked! You can now register devices.');
 
-        // Redirect to dashboard after 2 seconds
         setTimeout(() => {
           navigate('/manufacturer/dashboard');
         }, 2000);
@@ -158,7 +151,7 @@ const RegisterWallet = () => {
               Register Your Wallet
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Register your MetaMask wallet on the blockchain to start using the platform
+              Register as a Manufacturer to create and track devices
             </Typography>
           </Box>
 
@@ -182,7 +175,6 @@ const RegisterWallet = () => {
             </Alert>
           )}
 
-          {/* Step 1: Connect MetaMask */}
           {!isConnected && (
             <Box textAlign="center" py={4}>
               <Typography variant="h6" gutterBottom>
@@ -207,7 +199,6 @@ const RegisterWallet = () => {
             </Box>
           )}
 
-          {/* Step 2: Register on Blockchain */}
           {isConnected && !isRegistered && activeStep === 1 && (
             <Box textAlign="center" py={4}>
               <Typography variant="h6" gutterBottom>
@@ -239,7 +230,6 @@ const RegisterWallet = () => {
             </Box>
           )}
 
-          {/* Step 3: Success */}
           {activeStep === 3 && (
             <Box textAlign="center" py={4}>
               <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
@@ -247,7 +237,7 @@ const RegisterWallet = () => {
                 Registration Complete!
               </Typography>
               <Typography variant="body2" color="text.secondary" mb={3}>
-                Your wallet is now registered on the blockchain. Redirecting to dashboard...
+                Your wallet is now registered. Redirecting to dashboard...
               </Typography>
               <Button
                 variant="contained"
@@ -267,4 +257,4 @@ const RegisterWallet = () => {
   );
 };
 
-export default RegisterWallet;
+export default ManufacturerRegisterWallet;

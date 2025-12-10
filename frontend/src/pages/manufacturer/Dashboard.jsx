@@ -24,6 +24,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWeb3 } from '../../contexts/Web3Context';
+import WalletRegistrationPrompt from '../../components/common/WalletRegistrationPrompt';
 import api from '../../services/api';
 
 const ManufacturerDashboard = () => {
@@ -70,6 +71,17 @@ const ManufacturerDashboard = () => {
       setCheckingRegistration(false);
     }
   };
+
+  // Check if wallet is connected
+  if (!isConnected || !account) {
+    return (
+      <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh', py: 4 }}>
+        <Container maxWidth="lg">
+          <WalletRegistrationPrompt role="manufacturer" />
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ bgcolor: '#f5f5f5', minHeight: '100vh', py: 4 }}>

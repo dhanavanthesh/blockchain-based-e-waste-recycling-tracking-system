@@ -33,6 +33,7 @@ import { useWeb3 } from '../../contexts/Web3Context';
 import QRScanner from '../../components/qr/QRScanner';
 import DeviceTimeline from '../../components/device/DeviceTimeline';
 import api from '../../services/api';
+import WalletRegistrationPrompt from '../../components/common/WalletRegistrationPrompt';
 
 const ConsumerDashboard = () => {
   const navigate = useNavigate();
@@ -130,6 +131,17 @@ const ConsumerDashboard = () => {
       setClaiming(false);
     }
   };
+
+  // Check if wallet is connected
+  if (!isConnected || !account) {
+    return (
+      <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh', py: 4 }}>
+        <Container maxWidth="lg">
+          <WalletRegistrationPrompt role="consumer" />
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ bgcolor: '#f5f5f5', minHeight: '100vh', py: 4 }}>

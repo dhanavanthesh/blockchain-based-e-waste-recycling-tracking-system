@@ -19,30 +19,42 @@ export const Web3Provider = ({ children }) => {
   const [contract, setContract] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [chainId, setChainId] = useState(null);
+  const [isRegisteredOnChain, setIsRegisteredOnChain] = useState(false);
 
   useEffect(() => {
-    checkConnection();
-
+    // Only check connection if MetaMask is installed
     if (window.ethereum) {
+      checkConnection();
+      
       window.ethereum.on('accountsChanged', handleAccountsChanged);
       window.ethereum.on('chainChanged', handleChainChanged);
     }
 
     return () => {
-      if (window.ethereum) {
+      if (window.ethereum && window.ethereum.removeListener) {
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
         window.ethereum.removeListener('chainChanged', handleChainChanged);
       }
     };
   }, []);
 
+  // Check registration status when contract and account are loaded
+  useEffect(() => {
+    if (contract && account) {
+      checkBlockchainRegistration(account);
+    }
+  }, [contract, account]);
+
   const checkConnection = async () => {
     if (window.ethereum) {
       try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await provider.listAccounts();
+        // Check if already connected without requesting permissions
+        const accounts = await window.ethereum.request({ 
+          method: 'eth_accounts' 
+        });
 
-        if (accounts.length > 0) {
+        if (accounts && accounts.length > 0) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = await provider.getSigner();
           const address = await signer.getAddress();
           const network = await provider.getNetwork();
@@ -50,7 +62,7 @@ export const Web3Provider = ({ children }) => {
           setProvider(provider);
           setSigner(signer);
           setAccount(address);
-          setChainId(network.chainId);
+          setChainId(Number(network.chainId));
           setIsConnected(true);
 
           // Load contract if address is available
@@ -60,12 +72,18 @@ export const Web3Provider = ({ children }) => {
         }
       } catch (error) {
         console.error('Error checking connection:', error);
+        // Don't show error to user for auto-check on load
       }
     }
   };
 
   const loadContract = async (signerInstance) => {
     try {
+      if (!CONTRACT_ADDRESS) {
+        console.warn('Contract address not configured');
+        return;
+      }
+
       const contractJSON = require('../config/contractABI.json');
       const contractABI = contractJSON.abi; // Extract just the ABI array
       const contractInstance = new ethers.Contract(
@@ -74,8 +92,30 @@ export const Web3Provider = ({ children }) => {
         signerInstance
       );
       setContract(contractInstance);
+      console.log('Contract loaded successfully at:', CONTRACT_ADDRESS);
     } catch (error) {
       console.error('Error loading contract:', error);
+    }
+  };
+
+  const checkBlockchainRegistration = async (address) => {
+    if (!contract || !address) return false;
+
+    try {
+      console.log('Checking registration for:', address);
+      console.log('Contract address:', await contract.getAddress());
+      console.log('Provider network:', await provider.getNetwork());
+
+      // Use .staticCall() for explicit read-only call in ethers v6
+      const registered = await contract.isUserRegistered.staticCall(address);
+      console.log('Registration result:', registered);
+
+      setIsRegisteredOnChain(registered);
+      return registered;
+    } catch (error) {
+      console.error('Error checking blockchain registration:', error);
+      console.error('Error details:', error.code, error.message);
+      return false;
     }
   };
 
@@ -86,8 +126,16 @@ export const Web3Provider = ({ children }) => {
     }
 
     try {
+      // Request account access
+      const accounts = await window.ethereum.request({ 
+        method: 'eth_requestAccounts' 
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found');
+      }
+
       const provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await provider.send('eth_requestAccounts', []);
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
       const network = await provider.getNetwork();
@@ -95,7 +143,7 @@ export const Web3Provider = ({ children }) => {
       setProvider(provider);
       setSigner(signer);
       setAccount(address);
-      setChainId(network.chainId);
+      setChainId(Number(network.chainId));
       setIsConnected(true);
 
       if (CONTRACT_ADDRESS) {
@@ -105,9 +153,20 @@ export const Web3Provider = ({ children }) => {
       return { success: true, account: address };
     } catch (error) {
       console.error('Error connecting to MetaMask:', error);
+      
+      let errorMessage = 'Failed to connect to MetaMask';
+      
+      if (error.code === 4001) {
+        errorMessage = 'Connection request rejected by user';
+      } else if (error.code === -32002) {
+        errorMessage = 'Please check MetaMask - a connection request may already be pending';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       return {
         success: false,
-        message: error.message || 'Failed to connect to MetaMask'
+        message: errorMessage
       };
     }
   };
@@ -119,6 +178,7 @@ export const Web3Provider = ({ children }) => {
     setContract(null);
     setIsConnected(false);
     setChainId(null);
+    setIsRegisteredOnChain(false);
   };
 
   const switchAccount = async () => {
@@ -168,9 +228,11 @@ export const Web3Provider = ({ children }) => {
     contract,
     isConnected,
     chainId,
+    isRegisteredOnChain,
     connectMetaMask,
     disconnect,
-    switchAccount
+    switchAccount,
+    checkBlockchainRegistration
   };
 
   return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;

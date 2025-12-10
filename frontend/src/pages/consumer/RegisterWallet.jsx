@@ -45,7 +45,8 @@ const ConsumerRegisterWallet = () => {
     if (!contract || !account) return;
 
     try {
-      const registered = await contract.isUserRegistered(account);
+      // Use .staticCall() for explicit read-only call in ethers v6
+      const registered = await contract.isUserRegistered.staticCall(account);
       setIsRegistered(registered);
 
       if (registered) {
@@ -78,7 +79,8 @@ const ConsumerRegisterWallet = () => {
     setError('');
 
     try {
-      const alreadyRegistered = await contract.isUserRegistered(account);
+      // Use .staticCall() for explicit read-only call in ethers v6
+      const alreadyRegistered = await contract.isUserRegistered.staticCall(account);
       if (alreadyRegistered) {
         setIsRegistered(true);
         setActiveStep(2);

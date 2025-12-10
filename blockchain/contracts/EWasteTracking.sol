@@ -10,8 +10,8 @@ contract EWasteTracking {
     // Structs
     struct User {
         address walletAddress;
-        Role role;
         bool isRegistered;
+        uint256 registrationDate;
     }
 
     struct Device {
@@ -40,6 +40,7 @@ contract EWasteTracking {
 
     // State variables
     mapping(address => User) public users;
+    mapping(address => mapping(Role => bool)) public userRoles; // Support multiple roles
     mapping(uint256 => Device) public devices;
     mapping(uint256 => RecyclingReport) public recyclingReports;
     mapping(uint256 => address[]) public deviceOwnerHistory;
@@ -59,7 +60,7 @@ contract EWasteTracking {
     // Modifiers
     modifier onlyRole(Role _role) {
         require(users[msg.sender].isRegistered, "User not registered");
-        require(users[msg.sender].role == _role, "Unauthorized role");
+        require(userRoles[msg.sender][_role], "Unauthorized role");
         _;
     }
 
@@ -82,19 +83,33 @@ contract EWasteTracking {
     // User Management Functions
     function registerUser(Role _role) external {
         require(_role != Role.None, "Invalid role");
-        require(!users[msg.sender].isRegistered, "User already registered");
 
-        users[msg.sender] = User({
-            walletAddress: msg.sender,
-            role: _role,
-            isRegistered: true
-        });
+        // Allow adding new roles to existing users
+        if (!users[msg.sender].isRegistered) {
+            users[msg.sender] = User({
+                walletAddress: msg.sender,
+                isRegistered: true,
+                registrationDate: block.timestamp
+            });
+        }
+
+        // Add the new role
+        userRoles[msg.sender][_role] = true;
 
         emit UserRegistered(msg.sender, _role);
     }
 
     function getUserRole(address _user) external view returns (Role) {
-        return users[_user].role;
+        // Return first role found (for backward compatibility)
+        if (userRoles[_user][Role.Manufacturer]) return Role.Manufacturer;
+        if (userRoles[_user][Role.Consumer]) return Role.Consumer;
+        if (userRoles[_user][Role.Recycler]) return Role.Recycler;
+        if (userRoles[_user][Role.Regulator]) return Role.Regulator;
+        return Role.None;
+    }
+
+    function hasRole(address _user, Role _role) external view returns (bool) {
+        return userRoles[_user][_role];
     }
 
     function isUserRegistered(address _user) external view returns (bool) {
@@ -155,17 +170,23 @@ contract EWasteTracking {
         deviceExists(_deviceId)
     {
         require(users[msg.sender].isRegistered, "User not registered");
-        require(users[msg.sender].role == Role.Consumer, "Only consumers can claim devices");
+        require(userRoles[msg.sender][Role.Consumer], "Only consumers can claim devices");
         require(devices[_deviceId].status == DeviceStatus.Manufactured, "Device already claimed");
-        require(devices[_deviceId].currentOwner != msg.sender, "Already owner");
+
+        // REMOVED: Owner check to allow same wallet with multiple roles
+        // require(devices[_deviceId].currentOwner != msg.sender, "Already owner");
 
         address previousOwner = devices[_deviceId].currentOwner;
-        devices[_deviceId].currentOwner = msg.sender;
+
+        // Only transfer if not already owner
+        if (devices[_deviceId].currentOwner != msg.sender) {
+            devices[_deviceId].currentOwner = msg.sender;
+            deviceOwnerHistory[_deviceId].push(msg.sender);
+            ownerDevices[msg.sender].push(_deviceId);
+        }
+
         devices[_deviceId].status = DeviceStatus.InUse;
         devices[_deviceId].lastUpdated = block.timestamp;
-
-        deviceOwnerHistory[_deviceId].push(msg.sender);
-        ownerDevices[msg.sender].push(_deviceId);
 
         emit OwnershipTransferred(_deviceId, previousOwner, msg.sender);
     }
@@ -186,6 +207,51 @@ contract EWasteTracking {
         emit StatusUpdated(_deviceId, _status);
     }
 
+    // Recycling Functions
+    function submitRecyclingReport(
+        uint256 _deviceId,
+        uint256 _weight,
+        string memory _components
+    )
+        external
+        onlyRole(Role.Recycler)
+        deviceExists(_deviceId)
+        returns (uint256)
+    {
+        reportCount++;
+        uint256 newReportId = reportCount;
+
+        recyclingReports[newReportId] = RecyclingReport({
+            id: newReportId,
+            deviceId: _deviceId,
+            recyclerAddress: msg.sender,
+            weight: _weight,
+            components: _components,
+            timestamp: block.timestamp,
+            verified: false,
+            verifiedBy: address(0),
+            exists: true
+        });
+
+        emit RecyclingReportSubmitted(newReportId, _deviceId, msg.sender);
+
+        return newReportId;
+    }
+
+    function verifyRecyclingReport(uint256 _reportId)
+        external
+        onlyRole(Role.Regulator)
+        reportExists(_reportId)
+    {
+        require(!recyclingReports[_reportId].verified, "Report already verified");
+
+        recyclingReports[_reportId].verified = true;
+        recyclingReports[_reportId].verifiedBy = msg.sender;
+
+        emit ReportVerified(_reportId, msg.sender);
+    }
+
+    // View Functions
     function getDevice(uint256 _deviceId)
         external
         view
@@ -223,59 +289,12 @@ contract EWasteTracking {
         return deviceOwnerHistory[_deviceId];
     }
 
-    function getDevicesByOwner(address _owner) external view returns (uint256[] memory) {
-        return ownerDevices[_owner];
-    }
-
-    // Recycling Report Functions
-    function submitRecyclingReport(
-        uint256 _deviceId,
-        uint256 _weight,
-        string memory _components
-    )
+    function getUserDevices(address _user)
         external
-        onlyRole(Role.Recycler)
-        deviceExists(_deviceId)
-        returns (uint256)
+        view
+        returns (uint256[] memory)
     {
-        require(
-            devices[_deviceId].status == DeviceStatus.Collected ||
-            devices[_deviceId].status == DeviceStatus.Destroyed ||
-            devices[_deviceId].status == DeviceStatus.Recycled,
-            "Device not ready for recycling report"
-        );
-
-        reportCount++;
-        uint256 newReportId = reportCount;
-
-        recyclingReports[newReportId] = RecyclingReport({
-            id: newReportId,
-            deviceId: _deviceId,
-            recyclerAddress: msg.sender,
-            weight: _weight,
-            components: _components,
-            timestamp: block.timestamp,
-            verified: false,
-            verifiedBy: address(0),
-            exists: true
-        });
-
-        emit RecyclingReportSubmitted(newReportId, _deviceId, msg.sender);
-
-        return newReportId;
-    }
-
-    function verifyReport(uint256 _reportId)
-        external
-        onlyRole(Role.Regulator)
-        reportExists(_reportId)
-    {
-        require(!recyclingReports[_reportId].verified, "Report already verified");
-
-        recyclingReports[_reportId].verified = true;
-        recyclingReports[_reportId].verifiedBy = msg.sender;
-
-        emit ReportVerified(_reportId, msg.sender);
+        return ownerDevices[_user];
     }
 
     function getRecyclingReport(uint256 _reportId)
@@ -304,15 +323,5 @@ contract EWasteTracking {
             report.verified,
             report.verifiedBy
         );
-    }
-
-    // Helper function to get all devices (for regulators)
-    function getAllDevices() external view returns (uint256) {
-        return deviceCount;
-    }
-
-    // Helper function to get all reports
-    function getAllReports() external view returns (uint256) {
-        return reportCount;
     }
 }

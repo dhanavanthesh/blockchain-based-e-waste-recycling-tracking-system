@@ -7,6 +7,7 @@ const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 const { initWeb3 } = require('./services/web3Service');
 const { initSocket, setupEventListeners } = require('./services/syncService');
+const { ensureContractDeployed } = require('./services/contractDeploymentService');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -24,16 +25,6 @@ const io = socketIo(server, {
   }
 });
 
-// Connect to MongoDB
-connectDB();
-
-// Initialize Web3
-try {
-  initWeb3();
-} catch (error) {
-  console.error('Failed to initialize Web3. Make sure Ganache is running.');
-}
-
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -44,27 +35,20 @@ app.use('/uploads', express.static('uploads'));
 
 // Socket.io connection
 io.on('connection', (socket) => {
-  console.log('🔌 New client connected:', socket.id);
+  console.log('New client connected:', socket.id);
 
   socket.on('disconnect', () => {
-    console.log('🔌 Client disconnected:', socket.id);
+    console.log('Client disconnected:', socket.id);
   });
 
   socket.on('join-room', (room) => {
     socket.join(room);
-    console.log(`Client ${socket.id} joined room: ${room}`);
+    console.log('Client ' + socket.id + ' joined room: ' + room);
   });
 });
 
 // Initialize Socket.io for sync service
 initSocket(io);
-
-// Setup blockchain event listeners
-try {
-  setupEventListeners();
-} catch (error) {
-  console.error('Failed to setup event listeners:', error);
-}
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -83,10 +67,45 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`📡 Socket.io server ready`);
-  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+// Async startup function
+async function startServer() {
+  await connectDB();
+
+  // DISABLED: Automatic contract deployment
+  // If you need to deploy contracts, run: cd blockchain && npx truffle migrate --reset
+  // Then manually update CONTRACT_ADDRESS in .env files
+  /*
+  try {
+    await ensureContractDeployed();
+  } catch (error) {
+    console.error('Failed to ensure contract deployment:', error.message);
+    console.error('Please ensure Ganache is running on port 7545 and try again.');
+    process.exit(1);
+  }
+  */
+
+  try {
+    initWeb3();
+  } catch (error) {
+    console.error('Failed to initialize Web3. Make sure Ganache is running.');
+  }
+
+  try {
+    setupEventListeners();
+  } catch (error) {
+    console.error('Failed to setup event listeners:', error);
+  }
+
+  server.listen(PORT, () => {
+    console.log('Server running on port ' + PORT);
+    console.log('Socket.io server ready');
+    console.log('Environment: ' + (process.env.NODE_ENV || 'development'));
+  });
+}
+
+startServer().catch((error) => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
 });
 
 module.exports = { app, server, io };

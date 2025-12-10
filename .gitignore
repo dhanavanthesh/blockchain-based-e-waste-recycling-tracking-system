@@ -40,7 +40,7 @@ blockchain/.env
 .idea/
 *.swp
 *.swo
-
+node_modules/
 # OS
 .DS_Store
 Thumbs.db
@@ -48,3 +48,4 @@ Thumbs.db
 # Misc
 *.pem
 *.key
+/node_modules

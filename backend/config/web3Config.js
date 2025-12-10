@@ -1,20 +1,5 @@
 // Auto-generated file - Do not edit manually
-// Generated on: 2025-12-03T11:37:56.621Z
-
-const path = require('path');
-const fs = require('fs');
-
-// Read contract address from frontend .env
-const frontendEnvPath = path.join(__dirname, '../../frontend/.env');
-let contractAddressFromEnv = null;
-
-if (fs.existsSync(frontendEnvPath)) {
-  const envContent = fs.readFileSync(frontendEnvPath, 'utf8');
-  const match = envContent.match(/REACT_APP_CONTRACT_ADDRESS=(.+)/);
-  if (match) {
-    contractAddressFromEnv = match[1].trim();
-  }
-}
+// Generated on: 2025-12-07T07:15:23.477Z
 
 const contractABI = [
   {
@@ -453,6 +438,19 @@ const contractABI = [
         "internalType": "uint256",
         "name": "_deviceId",
         "type": "uint256"
+      }
+    ],
+    "name": "claimDevice",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_deviceId",
+        "type": "uint256"
       },
       {
         "internalType": "enum EWasteTracking.DeviceStatus",
@@ -687,10 +685,10 @@ const contractABI = [
   }
 ];
 
-const contractAddress = contractAddressFromEnv || process.env.CONTRACT_ADDRESS || "0xCe907818Fa2467BC90d0c740F2980341dc5365A9";
+const contractAddress = process.env.CONTRACT_ADDRESS || "0x754582cbce94EA91C0ce745730dcFa88C89A9B21";
 
 module.exports = {
   contractABI,
   contractAddress,
-  networkId: 5777
+  networkId: process.env.NETWORK_ID || 5777
 };

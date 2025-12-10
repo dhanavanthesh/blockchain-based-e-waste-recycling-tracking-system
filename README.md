@@ -12,346 +12,205 @@ A full-stack blockchain-enabled application for tracking electronic waste from p
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
-
 - [Node.js](https://nodejs.org/) (v16 or higher)
-- [MongoDB](https://www.mongodb.com/try/download/community) (v5 or higher)
-- [Ganache](https://trufflesuite.com/ganache/) (for local Ethereum blockchain)
+- [MongoDB](https://www.mongodb.com/try/download/community) - Must be running on localhost:27017
 - [MetaMask](https://metamask.io/) browser extension
-- [Truffle](https://trufflesuite.com/truffle/) (`npm install -g truffle`)
 
-## Project Structure
+## Quick Start
 
-```
-ewaste-tracking/
-├── blockchain/         # Smart contracts and migrations
-├── backend/           # Express.js API server
-└── frontend/          # React.js application
-```
-
-## Setup Instructions
-
-### Step 1: Clone and Install Dependencies
+### 1. Install Dependencies
 
 ```bash
-# Navigate to the blockchain project directory
-cd blockchain
-
-# Install blockchain dependencies
-npm install
-
-# Navigate to backend
-cd ../backend
-npm install
-
-# Navigate to frontend
-cd ../frontend
-npm install
+npm run install-all
 ```
 
-### Step 2: Start Ganache
+This installs all dependencies for blockchain, backend, and frontend.
 
-1. Open Ganache GUI or run:
+### 2. Start MongoDB
+
+Make sure MongoDB is running on port 27017:
+
+**Windows:**
 ```bash
-ganache-cli -p 7545 -d
+net start MongoDB
 ```
 
-2. Ganache will start on `http://127.0.0.1:7545`
-3. Note down some account addresses and private keys for testing
+**Mac:**
+```bash
+brew services start mongodb-community
+```
 
-### Step 3: Deploy Smart Contracts
+**Linux:**
+```bash
+sudo systemctl start mongod
+```
+
+### 3. Start Everything
 
 ```bash
-cd blockchain
-
-# Compile contracts
-truffle compile
-
-# Deploy to Ganache
-truffle migrate --reset --network development
-
-# Run tests (optional but recommended)
-truffle test
-
-# Export ABI to backend
-npm run export-abi
+npm start
 ```
 
-After deployment, you'll see the contract address in the output. Note this down.
+That's it! This single command will:
+- Start Ganache blockchain on port 7545
+- Automatically deploy smart contracts
+- Update all configuration files
+- Start backend server on port 5000
+- Start frontend on port 3000
 
-### Step 4: Configure MetaMask
+The application will open at http://localhost:3000
 
-1. Open MetaMask extension
-2. Add new network with these details:
+### 4. Setup MetaMask (First Time Only)
+
+1. Install MetaMask browser extension
+2. Add Ganache network to MetaMask:
    - **Network Name**: Ganache Local
    - **RPC URL**: http://127.0.0.1:7545
    - **Chain ID**: 1337
    - **Currency Symbol**: ETH
 
-3. Import accounts from Ganache:
-   - Copy private keys from Ganache
-   - In MetaMask: Account menu → Import Account → Paste private key
+3. Import a Ganache account:
+   - In MetaMask: Account menu → Import Account
+   - Ganache deterministic account private keys:
+     - Account 0: `0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d`
+     - Account 1: `0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1`
 
-### Step 5: Setup Backend
+### 5. Register and Use
+
+1. Go to http://localhost:3000
+2. Click "Register" and create an account (choose your role)
+3. Login with your credentials
+4. Connect your MetaMask wallet when prompted
+5. Start using the application!
+
+## Project Structure
+
+```
+ewaste-tracking/
+├── blockchain/         # Smart contracts and Truffle config
+│   ├── contracts/      # Solidity smart contracts
+│   ├── migrations/     # Deployment scripts
+│   └── scripts/        # Helper scripts
+├── backend/           # Express.js API server
+│   ├── config/        # Configuration files
+│   ├── controllers/   # Route controllers
+│   ├── models/        # MongoDB models
+│   ├── routes/        # API routes
+│   └── services/      # Business logic & blockchain interaction
+├── frontend/          # React.js application
+│   ├── src/
+│   │   ├── components/ # Reusable components
+│   │   ├── contexts/   # React contexts (Auth, Web3)
+│   │   ├── pages/      # Page components by role
+│   │   └── utils/      # Helper functions
+└── scripts/           # Startup/stop scripts
+```
+
+## User Roles
+
+1. **Manufacturer** - Register new devices on the blockchain
+2. **Consumer** - Claim device ownership and dispose to recyclers
+3. **Recycler** - Receive devices and submit recycling reports
+4. **Regulator** - Verify recycling reports and monitor the system
+
+## Key Features
+
+- **Blockchain Integration**: All device lifecycle events recorded on Ethereum
+- **Wallet-Based Authentication**: MetaMask integration for secure transactions
+- **Real-time Updates**: Socket.io for live notifications
+- **QR Code Generation**: Unique QR codes for each device
+- **Role-Based Access Control**: Separate dashboards for each user type
+- **Auto-Deployment**: Smart contracts deploy automatically on first run
+- **Simplified Setup**: Single command to start entire application
+
+## Development
+
+### Running Individual Services
+
+If you need to run services separately:
 
 ```bash
-cd backend
+# Backend only
+cd backend && npm run dev
 
-# Copy environment template
-cp .env.example .env
+# Frontend only
+cd frontend && npm start
+
+# Blockchain only
+cd blockchain && npx ganache --port 7545 --deterministic
 ```
 
-Edit `.env` and update:
-```
-PORT=5000
-MONGO_URI=mongodb://localhost:27017/ewaste_tracking
-JWT_SECRET=your_super_secret_key_here
-BLOCKCHAIN_URL=http://127.0.0.1:7545
-NODE_ENV=development
-```
-
-**Important**: The `CONTRACT_ADDRESS` will be automatically set when you run the export-abi script from Step 3.
-
-### Step 6: Start MongoDB
+### Stopping All Services
 
 ```bash
-# Start MongoDB service
-mongod
-
-# Or if using MongoDB as a service
-sudo systemctl start mongod  # Linux
-brew services start mongodb-community  # Mac
+npm stop
 ```
 
-### Step 7: Setup Frontend
+Or press `Ctrl+C` in the terminal where `npm start` is running.
+
+### Redeploying Contracts
+
+The backend automatically deploys contracts if they're not found. To force redeployment:
 
 ```bash
-cd frontend
-
-# Copy environment template
-cp .env.example .env
+cd blockchain
+truffle migrate --reset
 ```
 
-Edit `.env` and update:
-```
-REACT_APP_API_URL=http://localhost:5000/api
-REACT_APP_SOCKET_URL=http://localhost:5000
-REACT_APP_BLOCKCHAIN_URL=http://127.0.0.1:7545
-REACT_APP_CONTRACT_ADDRESS=<your_deployed_contract_address>
-```
+The backend will detect the new contract address and update configs automatically on next start.
 
-You also need to create a config file for the contract ABI:
+### Testing
+
 ```bash
-mkdir -p frontend/src/config
+# Backend tests
+cd backend && npm test
+
+# Frontend tests
+cd frontend && npm test
+
+# Smart contract tests
+cd blockchain && truffle test
 ```
-
-The contract ABI will be automatically copied when you run the export-abi script.
-
-### Step 8: Start the Application
-
-**Terminal 1 - Backend:**
-```bash
-cd backend
-npm run dev
-```
-Server runs on http://localhost:5000
-
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm start
-```
-Frontend runs on http://localhost:3000
-
-## Usage Guide
-
-### 1. Register Users
-
-1. Navigate to http://localhost:3000/register
-2. Create accounts for different roles:
-   - Manufacturer
-   - Consumer
-   - Recycler
-   - Regulator
-
-### 2. Connect MetaMask
-
-1. After logging in, click "Connect MetaMask"
-2. Approve the connection request
-3. Your wallet address will be displayed
-
-### 3. Register User on Blockchain (Optional)
-
-Some operations require your account to be registered on the blockchain. The app will prompt you when needed.
-
-### 4. Manufacturer Workflow
-
-1. Login as Manufacturer
-2. Go to Dashboard
-3. Click "Register New Device"
-4. Fill in device details
-5. Approve MetaMask transaction
-6. Device is registered on blockchain and database
-7. QR code is generated for the device
-
-### 5. Consumer Workflow
-
-1. Login as Consumer
-2. Scan QR code to view device history
-3. View device ownership timeline from blockchain
-4. Request ownership transfer
-
-### 6. Recycler Workflow
-
-1. Login as Recycler
-2. Scan device to collect
-3. Update device status (Collected/Destroyed/Recycled)
-4. Submit recycling report with photos
-5. Report is recorded on blockchain
-
-### 7. Regulator Workflow
-
-1. Login as Regulator
-2. Monitor all devices in system
-3. View pending recycling reports
-4. Verify reports (blockchain transaction)
-5. Generate compliance reports
 
 ## API Endpoints
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login
-- `GET /api/auth/profile` - Get user profile
-- `POST /api/auth/link-wallet` - Link MetaMask wallet
-
-### Manufacturer
-- `POST /api/manufacturer/device` - Register device
-- `GET /api/manufacturer/devices` - List devices
-- `GET /api/manufacturer/device/:id` - Device details
-- `GET /api/manufacturer/statistics` - Dashboard stats
-
-## Smart Contract Functions
-
-### User Management
-- `registerUser(Role _role)` - Register on blockchain
-- `getUserRole(address)` - Get user's role
-- `isUserRegistered(address)` - Check if registered
-
-### Device Management
-- `registerDevice(name, manufacturer)` - Register new device
-- `transferOwnership(deviceId, newOwner)` - Transfer device
-- `updateDeviceStatus(deviceId, status)` - Update status (Recycler)
-- `getDevice(deviceId)` - Get device details
-- `getDeviceHistory(deviceId)` - Get ownership history
-
-### Recycling
-- `submitRecyclingReport(deviceId, weight, components)` - Submit report
-- `verifyReport(reportId)` - Verify report (Regulator)
-- `getRecyclingReport(reportId)` - Get report details
-
-## Testing
-
-### Smart Contract Tests
-```bash
-cd blockchain
-truffle test
-```
-
-### Backend Tests
-```bash
-cd backend
-npm test
-```
-
-### Frontend Tests
-```bash
-cd frontend
-npm test
-```
+- **Auth**: `/api/auth/register`, `/api/auth/login`, `/api/auth/link-wallet`
+- **Manufacturer**: `/api/manufacturer/device`, `/api/manufacturer/devices`
+- **Consumer**: `/api/consumer/devices`, `/api/consumer/device/claim`
+- **Recycler**: `/api/recycler/devices`, `/api/recycler/report`
+- **Regulator**: `/api/regulator/reports`, `/api/regulator/verify`
 
 ## Troubleshooting
 
-### MetaMask Connection Issues
-- Ensure Ganache is running on port 7545
-- Check MetaMask network is set to Ganache Local
-- Clear MetaMask activity data and reconnect
+### MongoDB Connection Error
+Make sure MongoDB is running:
+```bash
+# Check if MongoDB is running
+# Windows: services.msc (look for MongoDB)
+# Mac: brew services list
+# Linux: systemctl status mongod
+```
 
-### Blockchain Transaction Failures
-- Check account has enough ETH for gas
-- Verify correct contract address in .env files
-- Ensure user is registered on blockchain with correct role
+### Ganache Port Already in Use
+Stop the existing Ganache instance or change the port in `.env` files.
 
-### MongoDB Connection Errors
-- Verify MongoDB is running: `mongosh`
-- Check MONGO_URI in backend/.env
-- Ensure database permissions are correct
+### Contract Deployment Failed
+1. Make sure Ganache is running
+2. Delete `blockchain/build` folder
+3. Restart the application with `npm start`
 
-### Socket.io Not Connecting
-- Check CORS settings in server.js
-- Verify SOCKET_URL in frontend/.env
-- Check browser console for connection errors
-
-## Real-time Features
-
-The app uses Socket.io for real-time updates:
-
-- **device:registered** - New device added
-- **device:transferred** - Ownership changed
-- **device:statusUpdated** - Status updated
-- **report:submitted** - New recycling report
-- **report:verified** - Report verified
-
-## Security Notes
-
-- Store JWT_SECRET securely in production
-- Use HTTPS in production
-- Validate all inputs on frontend and backend
-- Implement rate limiting for API endpoints
-- Use environment-specific contract addresses
-
-## Future Enhancements
-
-- Add Consumer, Recycler, and Regulator module pages
-- Implement QR code scanning
-- Add charts and analytics
-- Email notifications
-- PDF report generation
-- Deploy to Ethereum testnet
-- Mobile app with React Native
-- IPFS integration for images
-- Token rewards for recycling
-
-## Architecture Overview
-
-### Blockchain Layer
-- Solidity smart contract handles all immutable operations
-- Events emitted for every state change
-- Role-based access control on-chain
-
-### Backend Layer
-- Express.js API for off-chain data
-- MongoDB stores metadata (specs, images)
-- Web3 service bridges blockchain and API
-- Socket.io broadcasts real-time updates
-
-### Frontend Layer
-- React with Material-UI for user interface
-- Three context providers:
-  - AuthContext: JWT authentication
-  - Web3Context: MetaMask connection
-  - SocketContext: Real-time updates
-- Role-based routing and components
+### MetaMask Transaction Errors
+1. Make sure you're on the Ganache network in MetaMask
+2. Try resetting your account in MetaMask (Settings → Advanced → Reset Account)
 
 ## License
 
-MIT
+ISC
 
-## Support
+## Contributing
 
-For issues and questions:
-1. Check the troubleshooting section
-2. Review smart contract events in Ganache
-3. Check browser console for errors
-4. Verify all environment variables are set
-
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request

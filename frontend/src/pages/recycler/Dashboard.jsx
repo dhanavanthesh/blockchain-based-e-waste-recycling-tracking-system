@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWeb3 } from '../../contexts/Web3Context';
+import WalletRegistrationPrompt from '../../components/common/WalletRegistrationPrompt';
 
 const RecyclerDashboard = () => {
   const { user } = useAuth();
@@ -34,6 +35,17 @@ const RecyclerDashboard = () => {
     pendingDevices: 0,
     materialsRecovered: 0
   });
+
+  // Check if wallet is connected
+  if (!isConnected || !account) {
+    return (
+      <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh', py: 4 }}>
+        <Container maxWidth="lg">
+          <WalletRegistrationPrompt role="recycler" />
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ bgcolor: '#f5f5f5', minHeight: '100vh', py: 4 }}>
