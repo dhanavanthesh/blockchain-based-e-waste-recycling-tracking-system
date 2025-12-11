@@ -29,7 +29,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import QRScanner from '../../components/qr/QRScanner';
 import DeviceTimeline from '../../components/device/DeviceTimeline';
 import api from '../../services/api';
@@ -38,7 +38,7 @@ import WalletRegistrationPrompt from '../../components/common/WalletRegistration
 const ConsumerDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { account, contract, isConnected, connectMetaMask } = useWeb3();
+  const { account, isConnected, connectMetaMask, hasRole, isRegisteredOnChain: chainRegistered, checkBlockchainRegistration, claimDevice } = useWeb3();
   const [statistics, setStatistics] = useState({
     ownedDevices: 0,
     recycledDevices: 0
@@ -58,21 +58,21 @@ const ConsumerDashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (contract && account) {
-      checkBlockchainRegistration();
+    if (account) {
+      checkWalletRole();
     }
-  }, [contract, account]);
+  }, [account]);
 
-  const checkBlockchainRegistration = async () => {
-    if (!contract || !account) return;
+  const checkWalletRole = async () => {
+    if (!account) return;
 
     try {
-      const registered = await contract.isUserRegistered(account);
-      setIsRegisteredOnChain(registered);
-      console.log('Blockchain registration status:', registered);
+      await checkBlockchainRegistration(account);
+      setIsRegisteredOnChain(chainRegistered);
+      console.log('Blockchain registration status:', chainRegistered);
 
       // Check if wallet has Consumer role specifically (Role.Consumer = 2)
-      const consumerRole = await contract.hasRole(account, 2);
+      const consumerRole = await hasRole(account, 2);
       setHasConsumerRole(consumerRole);
       console.log('Has Consumer role:', consumerRole);
     } catch (error) {
@@ -103,7 +103,7 @@ const ConsumerDashboard = () => {
   };
 
   const handleClaimDevice = async () => {
-    if (!isConnected || !contract || !scannedDevice) {
+    if (!isConnected || !scannedDevice) {
       setError('Please connect your MetaMask wallet');
       return;
     }
@@ -112,18 +112,16 @@ const ConsumerDashboard = () => {
       setClaiming(true);
       setError('');
 
-      // Claim device on blockchain (ethers.js v6 syntax)
-      const tx = await contract.claimDevice(scannedDevice.blockchainId);
+      // Claim device on blockchain using DummyWalletContext
+      const result = await claimDevice(scannedDevice.blockchainId);
 
-      console.log('Transaction sent, waiting for confirmation...');
-      const receipt = await tx.wait();
-      console.log('Transaction confirmed:', receipt);
+      console.log('Device claimed successfully:', result);
 
       // Update in backend
       await api.post('/consumer/claim-device', {
         blockchainId: scannedDevice.blockchainId,
         walletAddress: account,
-        transactionHash: receipt.hash
+        transactionHash: result.transactionHash
       });
 
       setDeviceDialog(false);

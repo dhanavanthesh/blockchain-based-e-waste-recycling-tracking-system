@@ -23,14 +23,14 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import WalletRegistrationPrompt from '../../components/common/WalletRegistrationPrompt';
 import api from '../../services/api';
 
 const ManufacturerDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { account, isConnected, connectMetaMask, contract } = useWeb3();
+  const { account, isConnected, connectMetaMask, isRegisteredOnChain: chainRegistered, checkBlockchainRegistration } = useWeb3();
   const [statistics, setStatistics] = useState({
     totalDevices: 0
   });
@@ -42,10 +42,10 @@ const ManufacturerDashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (isConnected && account && contract) {
-      checkBlockchainRegistration();
+    if (isConnected && account) {
+      checkWalletRegistration();
     }
-  }, [isConnected, account, contract]);
+  }, [isConnected, account]);
 
   const fetchStatistics = async () => {
     try {
@@ -56,14 +56,14 @@ const ManufacturerDashboard = () => {
     }
   };
 
-  const checkBlockchainRegistration = async () => {
-    if (!contract || !account) return;
+  const checkWalletRegistration = async () => {
+    if (!account) return;
 
     setCheckingRegistration(true);
     try {
-      const registered = await contract.isUserRegistered(account);
-      setIsRegisteredOnChain(registered);
-      console.log('Blockchain registration status:', registered);
+      await checkBlockchainRegistration(account);
+      setIsRegisteredOnChain(chainRegistered);
+      console.log('Blockchain registration status:', chainRegistered);
     } catch (error) {
       console.error('Error checking blockchain registration:', error);
       setIsRegisteredOnChain(false);

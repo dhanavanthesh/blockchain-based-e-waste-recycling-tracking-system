@@ -5,8 +5,11 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Box } from '@mui/material';
 
 import { AuthProvider } from './contexts/AuthContext';
-import { Web3Provider } from './contexts/Web3Context';
+import { DummyWalletProvider } from './contexts/DummyWalletContext';
 import { SocketProvider } from './contexts/SocketContext';
+import FakeMetaMaskConnectModal from './components/wallet/FakeMetaMaskConnectModal';
+import FakeTransactionModal from './components/wallet/FakeTransactionModal';
+import FakeAccountSwitcher from './components/wallet/FakeAccountSwitcher';
 
 import Navigation from './components/common/Navigation';
 import PrivateRoute from './components/common/PrivateRoute';
@@ -46,7 +49,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <Web3Provider>
+        <DummyWalletProvider>
           <SocketProvider>
             <BrowserRouter>
               <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -191,8 +194,13 @@ function App() {
                 </Box>
               </Box>
             </BrowserRouter>
+
+            {/* Fake MetaMask Modals */}
+            <FakeMetaMaskConnectModal />
+            <FakeTransactionModal />
+            <FakeAccountSwitcher />
           </SocketProvider>
-        </Web3Provider>
+        </DummyWalletProvider>
       </AuthProvider>
     </ThemeProvider>
   );

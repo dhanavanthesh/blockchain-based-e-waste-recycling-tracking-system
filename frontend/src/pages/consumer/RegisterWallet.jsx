@@ -16,12 +16,12 @@ import {
   AccountBalanceWallet as WalletIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import api from '../../services/api';
 
 const ConsumerRegisterWallet = () => {
   const navigate = useNavigate();
-  const { account, isConnected, contract, connectMetaMask } = useWeb3();
+  const { account, isConnected, connectMetaMask, registerUser, hasRole, isRegisteredOnChain } = useWeb3();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -42,11 +42,11 @@ const ConsumerRegisterWallet = () => {
   }, [isConnected, account]);
 
   const checkIfRegistered = async () => {
-    if (!contract || !account) return;
+    if (!account) return;
 
     try {
       // Check if wallet has Consumer role specifically (Role.Consumer = 2)
-      const hasConsumerRole = await contract.hasRole(account, 2);
+      const hasConsumerRole = await hasRole(account, 2);
       setIsRegistered(hasConsumerRole);
 
       if (hasConsumerRole) {
@@ -70,17 +70,12 @@ const ConsumerRegisterWallet = () => {
   };
 
   const handleRegisterOnBlockchain = async () => {
-    if (!contract) {
-      setError('Smart contract not loaded. Please refresh the page.');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
-      // Check if wallet already has the Consumer role specifically (Role.Consumer = 2)
-      const hasConsumerRole = await contract.hasRole(account, 2);
+      // Check if wallet already has the Consumer role specifically
+      const hasConsumerRole = await hasRole(account, 2);
 
       if (hasConsumerRole) {
         console.log('Wallet already has Consumer role, skipping blockchain registration...');
@@ -92,20 +87,19 @@ const ConsumerRegisterWallet = () => {
       }
 
       // Check if wallet is registered with any role
-      const isRegistered = await contract.isUserRegistered(account);
+      const registered = isRegisteredOnChain;
 
-      if (isRegistered) {
+      if (registered) {
         console.log('Wallet registered with another role. Adding Consumer role...');
         setSuccess('Adding Consumer role to your wallet...');
       } else {
         console.log('Registering wallet for the first time as Consumer...');
       }
 
-      const tx = await contract.registerUser(2); // 2 = Consumer
+      // Call registerUser with role 'consumer'
+      const result = await registerUser('consumer');
 
-      console.log('Transaction sent, waiting for confirmation...');
-      const receipt = await tx.wait();
-      console.log('Transaction confirmed:', receipt);
+      console.log('Registration successful:', result);
 
       setIsRegistered(true);
       setActiveStep(2);

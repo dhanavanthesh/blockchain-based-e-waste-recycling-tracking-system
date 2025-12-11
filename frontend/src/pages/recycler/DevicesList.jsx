@@ -14,12 +14,12 @@ import {
   TextField,
   MenuItem
 } from '@mui/material';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import DeviceCard from '../../components/device/DeviceCard';
 import api from '../../services/api';
 
 const DevicesList = () => {
-  const { account, contract, isConnected } = useWeb3();
+  const { account, isConnected } = useWeb3();
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,25 +46,16 @@ const DevicesList = () => {
   };
 
   const handleUpdateStatus = async () => {
-    if (!isConnected || !contract || !selectedDevice) return;
+    if (!isConnected || !selectedDevice) return;
 
     try {
       setUpdating(true);
       setError('');
 
-      // Map status to blockchain enum
-      const statusMap = { 'collected': 1, 'in_recycling': 2, 'recycled': 3 };
-      const blockchainStatus = statusMap[newStatus] || 2;
-
-      // Update on blockchain
-      const tx = await contract.methods
-        .updateDeviceStatus(selectedDevice.blockchainId, blockchainStatus)
-        .send({ from: account });
-
-      // Update in backend
+      // Update in backend (blockchain update happens in backend via dummy service)
       await api.put(`/recycler/device/${selectedDevice._id}/status`, {
         status: newStatus,
-        transactionHash: tx.transactionHash
+        walletAddress: account
       });
 
       setStatusDialog(false);

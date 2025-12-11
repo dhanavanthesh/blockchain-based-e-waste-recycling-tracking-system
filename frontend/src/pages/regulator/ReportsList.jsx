@@ -20,11 +20,11 @@ import {
   DialogActions
 } from '@mui/material';
 import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import api from '../../services/api';
 
 const ReportsList = () => {
-  const { account, contract, isConnected } = useWeb3();
+  const { account, isConnected, verifyReport } = useWeb3();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -50,20 +50,20 @@ const ReportsList = () => {
   };
 
   const handleVerify = async () => {
-    if (!isConnected || !contract || !selectedReport) return;
+    if (!isConnected || !selectedReport) return;
 
     try {
       setVerifying(true);
       setError('');
 
-      // Verify on blockchain
-      const tx = await contract.methods
-        .verifyReport(selectedReport.blockchainReportId)
-        .send({ from: account });
+      // Verify on blockchain using DummyWalletContext
+      const result = await verifyReport(selectedReport.blockchainReportId);
+
+      console.log('Report verified:', result);
 
       // Update in backend
       await api.put(`/regulator/report/${selectedReport._id}/verify`, {
-        transactionHash: tx.transactionHash
+        transactionHash: result.transactionHash
       });
 
       setVerifyDialog(false);

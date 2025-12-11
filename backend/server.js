@@ -5,9 +5,8 @@ const http = require('http');
 const socketIo = require('socket.io');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
-const { initWeb3 } = require('./services/web3Service');
-const { initSocket, setupEventListeners } = require('./services/syncService');
-const { ensureContractDeployed } = require('./services/contractDeploymentService');
+const BlockchainCounter = require('./models/BlockchainCounter');
+const { initSocket } = require('./services/syncService');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -67,34 +66,35 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
+// Initialize blockchain counters
+async function initBlockchainCounters() {
+  try {
+    // Initialize device ID counter
+    await BlockchainCounter.findOneAndUpdate(
+      { name: 'deviceId' },
+      { $setOnInsert: { value: 0 } },
+      { upsert: true }
+    );
+
+    // Initialize report ID counter
+    await BlockchainCounter.findOneAndUpdate(
+      { name: 'reportId' },
+      { $setOnInsert: { value: 0 } },
+      { upsert: true }
+    );
+
+    console.log('✅ Blockchain counters initialized');
+  } catch (error) {
+    console.error('❌ Failed to initialize blockchain counters:', error.message);
+  }
+}
+
 // Async startup function
 async function startServer() {
   await connectDB();
 
-  // DISABLED: Automatic contract deployment
-  // If you need to deploy contracts, run: cd blockchain && npx truffle migrate --reset
-  // Then manually update CONTRACT_ADDRESS in .env files
-  /*
-  try {
-    await ensureContractDeployed();
-  } catch (error) {
-    console.error('Failed to ensure contract deployment:', error.message);
-    console.error('Please ensure Ganache is running on port 7545 and try again.');
-    process.exit(1);
-  }
-  */
-
-  try {
-    initWeb3();
-  } catch (error) {
-    console.error('Failed to initialize Web3. Make sure Ganache is running.');
-  }
-
-  try {
-    setupEventListeners();
-  } catch (error) {
-    console.error('Failed to setup event listeners:', error);
-  }
+  // Initialize dummy blockchain counters
+  await initBlockchainCounters();
 
   server.listen(PORT, () => {
     console.log('Server running on port ' + PORT);

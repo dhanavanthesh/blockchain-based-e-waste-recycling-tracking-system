@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Recycling as RecyclingIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import DeviceCard from '../../components/device/DeviceCard';
 import DeviceTimeline from '../../components/device/DeviceTimeline';
 import QRDisplay from '../../components/qr/QRDisplay';
@@ -24,7 +24,7 @@ import api from '../../services/api';
 
 const DevicesList = () => {
   const navigate = useNavigate();
-  const { account, contract, isConnected } = useWeb3();
+  const { account, isConnected, transferOwnership } = useWeb3();
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -70,7 +70,7 @@ const DevicesList = () => {
   };
 
   const submitRecycling = async () => {
-    if (!isConnected || !contract || !selectedDevice) {
+    if (!isConnected || !selectedDevice) {
       setError('Please connect your MetaMask wallet');
       return;
     }
@@ -79,21 +79,19 @@ const DevicesList = () => {
       setRecycling(true);
       setError('');
 
-      // Transfer ownership on blockchain (ethers.js v6 syntax)
-      const tx = await contract.transferOwnership(
+      // Transfer ownership on blockchain using DummyWalletContext
+      const result = await transferOwnership(
         selectedDevice.blockchainId,
         recyclerAddress
       );
 
-      console.log('Transaction sent, waiting for confirmation...');
-      const receipt = await tx.wait();
-      console.log('Transaction confirmed:', receipt);
+      console.log('Transfer successful:', result);
 
       // Update in backend
       await api.post('/consumer/recycle-device', {
         deviceId: selectedDevice._id,
         recyclerAddress: recyclerAddress,
-        transactionHash: receipt.hash
+        transactionHash: result.transactionHash
       });
 
       setRecycleDialog(false);

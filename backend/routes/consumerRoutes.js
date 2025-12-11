@@ -3,6 +3,8 @@ const router = express.Router();
 const {
   scanDevice,
   claimDevice,
+  claimDeviceBlockchain,
+  transferDeviceBlockchain,
   getMyDevices,
   getDeviceDetails,
   recycleDevice,
@@ -19,7 +21,9 @@ router.use(checkRole('consumer'));
 
 // Routes
 router.get('/scan/:blockchainId', scanDevice);
+router.post('/claim-device-blockchain', claimDeviceBlockchain);
 router.post('/claim-device', claimDevice);
+router.post('/transfer-blockchain', transferDeviceBlockchain);
 router.get('/devices', getMyDevices);
 router.get('/device/:id', getDeviceDetails);
 router.post('/recycle-device', recycleDevice);

@@ -1,6 +1,7 @@
 const Device = require('../models/Device');
 const RecyclingReport = require('../models/RecyclingReport');
 const { updateDeviceStatus, submitRecyclingReport, getDeviceFromChain } = require('../services/web3Service');
+const dummyBlockchainService = require('../services/dummyBlockchainService');
 
 // @desc    Get all devices in recycling for recycler
 // @route   GET /api/recycler/devices
@@ -72,6 +73,44 @@ exports.updateDeviceStatusByRecycler = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating device status:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Submit recycling report on blockchain (dummy)
+// @route   POST /api/recycler/submit-report-blockchain
+// @access  Private (Recycler only)
+exports.submitReportBlockchain = async (req, res) => {
+  try {
+    const { deviceId, weight, components, walletAddress } = req.body;
+
+    if (!deviceId || !weight || !components || !walletAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide deviceId, weight, components, and walletAddress'
+      });
+    }
+
+    // Submit report on "blockchain"
+    const result = await dummyBlockchainService.submitRecyclingReport(
+      deviceId,
+      weight,
+      components,
+      walletAddress
+    );
+
+    res.status(200).json({
+      success: true,
+      reportId: result.reportId,
+      transactionHash: result.transactionHash,
+      blockNumber: result.blockNumber,
+      message: 'Recycling report submitted on blockchain successfully'
+    });
+  } catch (error) {
+    console.error('Error submitting report on blockchain:', error);
     res.status(500).json({
       success: false,
       message: error.message

@@ -1,5 +1,6 @@
 const Device = require('../models/Device');
 const { getDeviceFromChain, getDeviceHistory, transferDeviceOwnership } = require('../services/web3Service');
+const dummyBlockchainService = require('../services/dummyBlockchainService');
 
 // @desc    Scan device QR code and get device info
 // @route   GET /api/consumer/scan/:blockchainId
@@ -36,6 +37,77 @@ exports.scanDevice = async (req, res) => {
     });
   } catch (error) {
     console.error('Error scanning device:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Claim device on blockchain (dummy)
+// @route   POST /api/consumer/claim-device-blockchain
+// @access  Private (Consumer only)
+exports.claimDeviceBlockchain = async (req, res) => {
+  try {
+    const { blockchainId, walletAddress } = req.body;
+
+    if (!blockchainId || !walletAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide blockchainId and walletAddress'
+      });
+    }
+
+    // Claim device on "blockchain"
+    const result = await dummyBlockchainService.claimDeviceOnChain(
+      blockchainId,
+      walletAddress
+    );
+
+    res.status(200).json({
+      success: true,
+      transactionHash: result.transactionHash,
+      blockNumber: result.blockNumber,
+      message: 'Device claimed on blockchain successfully'
+    });
+  } catch (error) {
+    console.error('Error claiming device on blockchain:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Transfer device ownership on blockchain (dummy)
+// @route   POST /api/consumer/transfer-blockchain
+// @access  Private (Consumer only)
+exports.transferDeviceBlockchain = async (req, res) => {
+  try {
+    const { deviceId, newOwnerAddress, walletAddress } = req.body;
+
+    if (!deviceId || !newOwnerAddress || !walletAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide deviceId, newOwnerAddress, and walletAddress'
+      });
+    }
+
+    // Transfer device on "blockchain"
+    const result = await dummyBlockchainService.transferDeviceOwnership(
+      deviceId,
+      newOwnerAddress,
+      walletAddress
+    );
+
+    res.status(200).json({
+      success: true,
+      transactionHash: result.transactionHash,
+      blockNumber: result.blockNumber,
+      message: 'Device transferred on blockchain successfully'
+    });
+  } catch (error) {
+    console.error('Error transferring device on blockchain:', error);
     res.status(500).json({
       success: false,
       message: error.message

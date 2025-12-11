@@ -4,6 +4,7 @@ const {
   getRecyclingDevices,
   updateDeviceStatusByRecycler,
   submitReport,
+  submitReportBlockchain,
   getRecyclerReports,
   getReportDetails,
   getStatistics,
@@ -22,6 +23,7 @@ router.use(checkRole('recycler'));
 // Routes
 router.get('/devices', getRecyclingDevices);
 router.put('/device/:id/status', updateDeviceStatusByRecycler);
+router.post('/submit-report-blockchain', submitReportBlockchain);
 router.post('/report', submitReport);
 router.get('/reports', getRecyclerReports);
 router.get('/report/:id', getReportDetails);

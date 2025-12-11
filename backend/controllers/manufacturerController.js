@@ -1,6 +1,7 @@
 const Device = require('../models/Device');
 const { registerDeviceOnChain, getDeviceFromChain } = require('../services/web3Service');
 const { generateDeviceQR } = require('../services/qrService');
+const dummyBlockchainService = require('../services/dummyBlockchainService');
 
 // @desc    Register a new device (OLD - with blockchain transaction)
 // @route   POST /api/manufacturer/device
@@ -58,6 +59,44 @@ exports.registerDevice = async (req, res) => {
     });
   } catch (error) {
     console.error('Error registering device:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Register device on blockchain (dummy)
+// @route   POST /api/manufacturer/device/blockchain
+// @access  Private (Manufacturer only)
+exports.registerDeviceBlockchain = async (req, res) => {
+  try {
+    const { name, manufacturer, walletAddress } = req.body;
+
+    // Validate required fields
+    if (!name || !manufacturer || !walletAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide all required fields'
+      });
+    }
+
+    // Register device on "blockchain"
+    const result = await dummyBlockchainService.registerDeviceOnChain(
+      name,
+      manufacturer,
+      walletAddress
+    );
+
+    res.status(200).json({
+      success: true,
+      deviceId: result.deviceId,
+      transactionHash: result.transactionHash,
+      blockNumber: result.blockNumber,
+      message: 'Device registered on blockchain successfully'
+    });
+  } catch (error) {
+    console.error('Error registering device on blockchain:', error);
     res.status(500).json({
       success: false,
       message: error.message

@@ -16,12 +16,12 @@ import {
   AccountBalanceWallet as WalletIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import api from '../../services/api';
 
 const ManufacturerRegisterWallet = () => {
   const navigate = useNavigate();
-  const { account, isConnected, contract, connectMetaMask } = useWeb3();
+  const { account, isConnected, connectMetaMask, registerUser, hasRole, isRegisteredOnChain } = useWeb3();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -42,11 +42,11 @@ const ManufacturerRegisterWallet = () => {
   }, [isConnected, account]);
 
   const checkIfRegistered = async () => {
-    if (!contract || !account) return;
+    if (!account) return;
 
     try {
       // Check if wallet has Manufacturer role specifically (Role.Manufacturer = 1)
-      const hasManufacturerRole = await contract.hasRole(account, 1);
+      const hasManufacturerRole = await hasRole(account, 1);
       setIsRegistered(hasManufacturerRole);
 
       if (hasManufacturerRole) {
@@ -70,17 +70,12 @@ const ManufacturerRegisterWallet = () => {
   };
 
   const handleRegisterOnBlockchain = async () => {
-    if (!contract) {
-      setError('Smart contract not loaded. Please refresh the page.');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
-      // Check if wallet already has the Manufacturer role specifically (Role.Manufacturer = 1)
-      const hasManufacturerRole = await contract.hasRole(account, 1);
+      // Check if wallet already has the Manufacturer role specifically
+      const hasManufacturerRole = await hasRole(account, 1);
 
       if (hasManufacturerRole) {
         console.log('Wallet already has Manufacturer role, skipping blockchain registration...');
@@ -92,20 +87,19 @@ const ManufacturerRegisterWallet = () => {
       }
 
       // Check if wallet is registered with any role
-      const isRegistered = await contract.isUserRegistered(account);
+      const registered = isRegisteredOnChain;
 
-      if (isRegistered) {
+      if (registered) {
         console.log('Wallet registered with another role. Adding Manufacturer role...');
         setSuccess('Adding Manufacturer role to your wallet...');
       } else {
         console.log('Registering wallet for the first time as Manufacturer...');
       }
 
-      const tx = await contract.registerUser(1); // 1 = Manufacturer
+      // Call registerUser with role 'manufacturer'
+      const result = await registerUser('manufacturer');
 
-      console.log('Transaction sent, waiting for confirmation...');
-      const receipt = await tx.wait();
-      console.log('Transaction confirmed:', receipt);
+      console.log('Registration successful:', result);
 
       setIsRegistered(true);
       setActiveStep(2);

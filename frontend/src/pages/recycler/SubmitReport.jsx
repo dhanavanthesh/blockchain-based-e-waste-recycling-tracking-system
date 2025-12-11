@@ -11,11 +11,11 @@ import {
   Grid
 } from '@mui/material';
 import { Send as SendIcon } from '@mui/icons-material';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import api from '../../services/api';
 
 const SubmitReport = () => {
-  const { account, contract, isConnected } = useWeb3();
+  const { account, isConnected, submitRecyclingReport } = useWeb3();
   const [devices, setDevices] = useState([]);
   const [formData, setFormData] = useState({
     deviceId: '',
@@ -42,7 +42,7 @@ const SubmitReport = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isConnected || !contract) {
+    if (!isConnected) {
       setError('Please connect your MetaMask wallet');
       return;
     }
@@ -58,26 +58,23 @@ const SubmitReport = () => {
         return;
       }
 
-      // Submit report on blockchain
-      const tx = await contract.methods
-        .submitRecyclingReport(
-          device.blockchainId,
-          parseInt(formData.weight),
-          formData.components
-        )
-        .send({ from: account });
+      // Submit report on blockchain using DummyWalletContext
+      const result = await submitRecyclingReport(
+        device.blockchainId,
+        parseInt(formData.weight),
+        formData.components
+      );
 
-      // Get report ID from event
-      const reportId = tx.events.RecyclingReportSubmitted.returnValues.reportId;
+      console.log('Report submitted:', result);
 
       // Submit to backend
       await api.post('/recycler/report', {
         deviceId: formData.deviceId,
-        blockchainReportId: reportId,
+        blockchainReportId: result.reportId,
         weight: formData.weight,
         components: formData.components,
         notes: formData.notes,
-        transactionHash: tx.transactionHash
+        transactionHash: result.transactionHash
       });
 
       setSuccess('Recycling report submitted successfully!');

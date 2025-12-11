@@ -25,7 +25,7 @@ import {
   Gavel as GavelIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import WalletRegistrationPrompt from '../../components/common/WalletRegistrationPrompt';
 
 const RegulatorDashboard = () => {

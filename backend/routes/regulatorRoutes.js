@@ -4,6 +4,7 @@ const {
   getAllDevices,
   getAllReports,
   verifyRecyclingReport,
+  verifyReportBlockchain,
   getSystemStatistics,
   getDeviceCompliance,
   getManufacturers,
@@ -21,6 +22,7 @@ router.use(checkRole('regulator'));
 // Routes
 router.get('/devices', getAllDevices);
 router.get('/reports', getAllReports);
+router.post('/verify-report-blockchain', verifyReportBlockchain);
 router.put('/report/:id/verify', verifyRecyclingReport);
 router.get('/statistics', getSystemStatistics);
 router.get('/device/:id', getDeviceCompliance);

@@ -16,12 +16,12 @@ import {
   AccountBalanceWallet as WalletIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import api from '../../services/api';
 
 const RecyclerRegisterWallet = () => {
   const navigate = useNavigate();
-  const { account, isConnected, contract, connectMetaMask } = useWeb3();
+  const { account, isConnected, connectMetaMask, registerUser, hasRole, isRegisteredOnChain } = useWeb3();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -42,15 +42,15 @@ const RecyclerRegisterWallet = () => {
   }, [isConnected, account]);
 
   const checkIfRegistered = async () => {
-    if (!contract || !account) return;
+    if (!account) return;
 
     try {
-      const registered = await contract.isUserRegistered(account);
-      setIsRegistered(registered);
+      const hasRecyclerRole = await hasRole(account, 3);
+      setIsRegistered(hasRecyclerRole);
 
-      if (registered) {
+      if (hasRecyclerRole) {
         setActiveStep(3);
-        setSuccess('Your wallet is already registered on the blockchain!');
+        setSuccess('Your wallet is already registered as Recycler on the blockchain!');
       }
     } catch (error) {
       console.error('Error checking registration:', error);
@@ -69,34 +69,33 @@ const RecyclerRegisterWallet = () => {
   };
 
   const handleRegisterOnBlockchain = async () => {
-    if (!contract) {
-      setError('Smart contract not loaded. Please refresh the page.');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
-      const alreadyRegistered = await contract.isUserRegistered(account);
-      if (alreadyRegistered) {
+      const hasRecyclerRole = await hasRole(account, 3);
+      if (hasRecyclerRole) {
         setIsRegistered(true);
         setActiveStep(2);
-        setSuccess('Wallet already registered on blockchain! Linking to account...');
+        setSuccess('Wallet already registered as Recycler! Linking to account...');
         await handleLinkWallet();
         return;
       }
 
-      console.log('Registering on blockchain as Recycler...');
-      const tx = await contract.registerUser(3); // 2 = Recycler
+      const registered = isRegisteredOnChain;
+      if (registered) {
+        console.log('Wallet registered with another role. Adding Recycler role...');
+        setSuccess('Adding Recycler role to your wallet...');
+      } else {
+        console.log('Registering wallet for the first time as Recycler...');
+      }
 
-      console.log('Transaction sent, waiting for confirmation...');
-      const receipt = await tx.wait();
-      console.log('Transaction confirmed:', receipt);
+      const result = await registerUser('recycler');
+      console.log('Registration successful:', result);
 
       setIsRegistered(true);
       setActiveStep(2);
-      setSuccess('Successfully registered on blockchain! Now linking wallet to your account...');
+      setSuccess('Successfully registered as Recycler! Now linking wallet to your account...');
 
       await handleLinkWallet();
 
@@ -105,10 +104,6 @@ const RecyclerRegisterWallet = () => {
 
       if (err.code === 'ACTION_REJECTED') {
         setError('Transaction rejected by user');
-      } else if (err.message && err.message.includes('User already registered')) {
-        setIsRegistered(true);
-        setActiveStep(2);
-        await handleLinkWallet();
       } else {
         setError(err.message || 'Failed to register on blockchain. Please try again.');
       }

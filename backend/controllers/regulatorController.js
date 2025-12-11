@@ -2,6 +2,7 @@ const Device = require('../models/Device');
 const RecyclingReport = require('../models/RecyclingReport');
 const User = require('../models/User');
 const { verifyReport, getRecyclingReportFromChain } = require('../services/web3Service');
+const dummyBlockchainService = require('../services/dummyBlockchainService');
 
 // @desc    Get all devices in system (for monitoring)
 // @route   GET /api/regulator/devices
@@ -78,6 +79,41 @@ exports.getAllReports = async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting reports:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Verify recycling report on blockchain (dummy)
+// @route   POST /api/regulator/verify-report-blockchain
+// @access  Private (Regulator only)
+exports.verifyReportBlockchain = async (req, res) => {
+  try {
+    const { reportId, walletAddress } = req.body;
+
+    if (!reportId || !walletAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide reportId and walletAddress'
+      });
+    }
+
+    // Verify report on "blockchain"
+    const result = await dummyBlockchainService.verifyReport(
+      reportId,
+      walletAddress
+    );
+
+    res.status(200).json({
+      success: true,
+      transactionHash: result.transactionHash,
+      blockNumber: result.blockNumber,
+      message: 'Report verified on blockchain successfully'
+    });
+  } catch (error) {
+    console.error('Error verifying report on blockchain:', error);
     res.status(500).json({
       success: false,
       message: error.message

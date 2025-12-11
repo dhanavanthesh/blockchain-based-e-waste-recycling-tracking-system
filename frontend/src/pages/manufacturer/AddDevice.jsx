@@ -18,13 +18,12 @@ import {
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import api from '../../services/api';
-import { ethers } from 'ethers';
 
 const AddDevice = () => {
   const navigate = useNavigate();
-  const { account, isConnected, contract } = useWeb3();
+  const { account, isConnected, registerDevice } = useWeb3();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -52,12 +51,7 @@ const AddDevice = () => {
     setSuccess('');
 
     if (!isConnected) {
-      setError('Please connect your MetaMask wallet first');
-      return;
-    }
-
-    if (!contract) {
-      setError('Smart contract not loaded. Please refresh the page.');
+      setError('Please connect your wallet first');
       return;
     }
 
@@ -71,39 +65,15 @@ const AddDevice = () => {
     setLoading(true);
 
     try {
-      // STEP 1: Send blockchain transaction via MetaMask
-      console.log('Sending blockchain transaction...');
-      const tx = await contract.registerDevice(
+      // STEP 1: Register device on blockchain (dummy)
+      console.log('Registering device on blockchain...');
+      const result = await registerDevice(
         formData.name,
         formData.manufacturer
       );
 
-      console.log('Transaction sent, waiting for confirmation...');
-      const receipt = await tx.wait();
-      console.log('Transaction confirmed:', receipt);
-
-      // Get device ID from event (ethers v6 style)
-      let blockchainId = null;
-
-      // Parse logs to find DeviceRegistered event
-      for (const log of receipt.logs) {
-        try {
-          const parsedLog = contract.interface.parseLog(log);
-          if (parsedLog && parsedLog.name === 'DeviceRegistered') {
-            blockchainId = Number(parsedLog.args.deviceId);
-            console.log('Found device ID from event:', blockchainId);
-            break;
-          }
-        } catch (error) {
-          // Skip logs that don't match our contract
-          continue;
-        }
-      }
-
-      if (!blockchainId) {
-        console.error('Could not find DeviceRegistered event in logs:', receipt.logs);
-        throw new Error('Failed to get device ID from blockchain');
-      }
+      const blockchainId = result.deviceId;
+      console.log('Device registered with ID:', blockchainId);
 
       // STEP 2: Save metadata to backend database
       console.log('Saving device metadata to database...');
@@ -114,7 +84,7 @@ const AddDevice = () => {
         serialNumber: formData.serialNumber,
         weight: formData.weight ? parseFloat(formData.weight) : 0,
         materials: formData.materials ? formData.materials.split(',').map(m => m.trim()) : [],
-        transactionHash: receipt.hash,
+        transactionHash: result.transactionHash,
         walletAddress: account
       };
 

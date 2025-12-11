@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const { generateToken } = require('../middleware/auth');
+const dummyBlockchainService = require('../services/dummyBlockchainService');
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -213,6 +214,97 @@ exports.linkWallet = async (req, res) => {
         role: user.role,
         walletAddress: user.walletAddress
       }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Register wallet on blockchain
+// @route   POST /api/auth/register-blockchain
+// @access  Private
+exports.registerOnBlockchain = async (req, res) => {
+  try {
+    const { walletAddress } = req.body;
+    const user = req.user;
+
+    if (!walletAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide wallet address'
+      });
+    }
+
+    // Register wallet on "blockchain" with user's role
+    const result = await dummyBlockchainService.registerUserOnChain(
+      walletAddress,
+      user.role
+    );
+
+    res.status(200).json({
+      success: true,
+      transactionHash: result.transactionHash,
+      blockNumber: result.blockNumber,
+      message: 'Wallet registered on blockchain successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Check if wallet has specific role
+// @route   GET /api/auth/check-role
+// @access  Public
+exports.checkRole = async (req, res) => {
+  try {
+    const { address, role } = req.query;
+
+    if (!address || !role) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide address and role'
+      });
+    }
+
+    const hasRole = await dummyBlockchainService.hasRole(address, role);
+
+    res.status(200).json({
+      success: true,
+      hasRole
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Check if wallet is registered on blockchain
+// @route   GET /api/auth/check-registration
+// @access  Public
+exports.checkRegistration = async (req, res) => {
+  try {
+    const { address } = req.query;
+
+    if (!address) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide address'
+      });
+    }
+
+    const isRegistered = await dummyBlockchainService.isUserRegistered(address);
+
+    res.status(200).json({
+      success: true,
+      isRegistered
     });
   } catch (error) {
     res.status(500).json({

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { useWeb3 } from '../../contexts/DummyWalletContext';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
 export default function WalletRegistrationPrompt({ role }) {
-  const { connectMetaMask, contract, account, isConnected } = useWeb3();
+  const { connectMetaMask, account, isConnected, registerUser, hasRole, isRegisteredOnChain } = useWeb3();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -23,10 +23,10 @@ export default function WalletRegistrationPrompt({ role }) {
   // Check if user has the specific role for this page
   useEffect(() => {
     const checkRegistration = async () => {
-      if (account && contract) {
+      if (account) {
         try {
           // Check if user has THIS specific role
-          const hasThisRole = await contract.hasRole.staticCall(account, roleMap[role]);
+          const hasThisRole = await hasRole(account, roleMap[role]);
 
           if (hasThisRole) {
             setIsRegistered(true);
@@ -43,7 +43,7 @@ export default function WalletRegistrationPrompt({ role }) {
     };
 
     checkRegistration();
-  }, [account, contract, role]);
+  }, [account, role, hasRole]);
 
   const handleConnectWallet = async () => {
     setLoading(true);
@@ -69,12 +69,12 @@ export default function WalletRegistrationPrompt({ role }) {
 
     try {
       // Check if user is already registered (for better messaging)
-      const isAlreadyRegistered = await contract.isUserRegistered.staticCall(account);
+      const isAlreadyRegistered = isRegisteredOnChain;
 
       console.log(isAlreadyRegistered ? `Adding ${role} role to existing wallet...` : `Registering wallet as ${role}...`);
 
-      const tx = await contract.registerUser(roleMap[role]);
-      await tx.wait();
+      const result = await registerUser(role);
+      console.log('Registration successful:', result);
 
       setIsRegistered(true);
       setStep(3);
