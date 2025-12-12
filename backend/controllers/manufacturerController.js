@@ -1,5 +1,4 @@
 const Device = require('../models/Device');
-const { registerDeviceOnChain, getDeviceFromChain } = require('../services/web3Service');
 const { generateDeviceQR } = require('../services/qrService');
 const dummyBlockchainService = require('../services/dummyBlockchainService');
 
@@ -19,7 +18,7 @@ exports.registerDevice = async (req, res) => {
     }
 
     // Register device on blockchain
-    const blockchainResult = await registerDeviceOnChain(name, manufacturer, walletAddress);
+    const blockchainResult = await dummyBlockchainService.registerDeviceOnChain(name, manufacturer, walletAddress);
 
     // Create device in MongoDB
     const device = await Device.create({
@@ -212,7 +211,7 @@ exports.getDeviceDetails = async (req, res) => {
     }
 
     // Get blockchain data
-    const blockchainData = await getDeviceFromChain(device.blockchainId);
+    const blockchainData = await dummyBlockchainService.getDevice(device.blockchainId);
 
     res.status(200).json({
       success: true,

@@ -1,7 +1,6 @@
 const Device = require('../models/Device');
 const RecyclingReport = require('../models/RecyclingReport');
 const User = require('../models/User');
-const { verifyReport, getRecyclingReportFromChain } = require('../services/web3Service');
 const dummyBlockchainService = require('../services/dummyBlockchainService');
 
 // @desc    Get all devices in system (for monitoring)

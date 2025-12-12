@@ -1,6 +1,5 @@
 const Device = require('../models/Device');
 const RecyclingReport = require('../models/RecyclingReport');
-const { updateDeviceStatus, submitRecyclingReport, getDeviceFromChain } = require('../services/web3Service');
 const dummyBlockchainService = require('../services/dummyBlockchainService');
 
 // @desc    Get all devices in recycling for recycler

@@ -1,5 +1,4 @@
 const Device = require('../models/Device');
-const { getDeviceFromChain, getDeviceHistory, transferDeviceOwnership } = require('../services/web3Service');
 const dummyBlockchainService = require('../services/dummyBlockchainService');
 
 // @desc    Scan device QR code and get device info
@@ -22,10 +21,10 @@ exports.scanDevice = async (req, res) => {
     }
 
     // Get blockchain data
-    const blockchainData = await getDeviceFromChain(blockchainId);
+    const blockchainData = await dummyBlockchainService.getDevice(blockchainId);
 
     // Get device history
-    const history = await getDeviceHistory(blockchainId);
+    const history = await dummyBlockchainService.getDeviceHistory(blockchainId);
 
     res.status(200).json({
       success: true,
@@ -207,8 +206,8 @@ exports.getDeviceDetails = async (req, res) => {
     }
 
     // Get blockchain data
-    const blockchainData = await getDeviceFromChain(device.blockchainId);
-    const history = await getDeviceHistory(device.blockchainId);
+    const blockchainData = await dummyBlockchainService.getDevice(device.blockchainId);
+    const history = await dummyBlockchainService.getDeviceHistory(device.blockchainId);
 
     res.status(200).json({
       success: true,
